@@ -1,24 +1,35 @@
-CC			=	$(CROSS)gcc
-AR			=	$(CROSS)ar
-CPPFLAGS	=	-Wall -g
-LDSHFLAGS	=	-rdynamic -shared 
-ARFLAGS		=	rcv
-TARGETS		=	libi2c.a libi2c.so
+CROSS		=	
+CC			= $(CROSS)gcc
+AR			= $(CROSS)ar
+CFLAGS		= -Wall -g
+LDSHFLAGS	= -rdynamic -shared 
+ARFLAGS		= rcv
 
-.PHONY:all clean
+SOURCES=$(wildcard src/*.c)
+HEADERS=$(wildcard src/*.h)
+OBJECTS=$(SOURCES:.c=.o)
+TARGETS = libi2c.a libi2c.so
 
-all:$(TARGETS)
+.PHONY:all clean test
+.SILENT: clean
+
+all:$(TARGETS) test
 
 clean:
-	$(RM) *.o *~ depend $(TARGETS)
+	make -C test clean
+	find . -name "*.o" | xargs rm -f 
+	$(RM) *.o *~ a.out depend $(TARGETS) -f
 
-libi2c.a:i2c.o
+test:$(TARGETS)
+	make -C test
+
+libi2c.a:$(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $^
 
-libi2c.so:i2c.o
+libi2c.so:$(OBJECTS)
 	$(CC) $(LDSHFLAGS) -o $@ $^
 
-depend:$(wildcard *.c *.h)
-	$(CC) $(CPPFLAGS) -MM $^ > $@
+depend:$(SOURCES) $(HEADERS)
+	$(CC) $(CFLAGS) -MM $^ > $@
 
 -include depend
