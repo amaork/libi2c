@@ -4,18 +4,18 @@
 #include <string.h>
 #include "i2c.h"
 
-void print_i2c_msg(const P_I2C_MSG msg)
+void print_i2c_data(const unsigned char *data, size_t len)
 {
 	int i = 0;
 
-	for (i = 0; i < msg->len; i++){
+	for (i = 0; i < len; i++){
 
 		if (i % 16 == 0){
 
 			fprintf(stdout, "\n");
 		}
 
-		fprintf(stdout, "%02x ", msg->buf[i]);
+		fprintf(stdout, "%02x ", data[i]);
 	}
 
 	fprintf(stdout, "\n");
@@ -24,114 +24,108 @@ void print_i2c_msg(const P_I2C_MSG msg)
 
 int main(int argc, char** argv)
 {
-	I2C_MSG msg;
-	I2C_OPER_HANDLE i2c_oper_handle = i2c_oper;
-	
-	int i;
-	unsigned int addr;
-	unsigned char buf[256];
-	memset(&msg, 0, sizeof(msg));
-	memset(buf, 0, sizeof(buf));
+	I2C_READ_HANDLE i2c_read_handle = i2c_read;
+	I2C_WRITE_HANDLE i2c_write_handle = i2c_write;
+	unsigned int addr = 0, iaddr_bytes = 0, bus_num = -1;
 
 	if (argc < 4) {
 
 		fprintf(stdout, "Usage:%s <bus> <dev_addr> <iaddr_bytes> [ioctl]\n"
 						"Such as:\n"
-						"\t24c04 i2c_test /dev/i2c-1 0x50 1\n"
-						"\t24c64 i2c_test /dev/i2c-1 0x50 2\n"
-						"\t24c64 i2c_test /dec/i2c-1 0x50 2 ioctl\n", argv[0]);
+						"\t24c04 i2c_test 1 0x50 1\n"
+						"\t24c64 i2c_test 1 0x50 2\n"
+						"\t24c64 i2c_test 1 0x50 2 ioctl\n", argv[0]);
 		exit(0);
 	}
 
-	/* If specify ioctl using ioctl r/w i2c */
-	if (argc == 5 && (memcmp(argv[4], "ioctl", strlen("ioctl")) == 0)) {
+	/* Get i2c bus number */
+	if (sscanf(argv[1], "%u", &bus_num) != 1) {
 
-		i2c_oper_handle = i2c_ioctl_oper;
-		fprintf(stdout, "Using i2c_ioctl_oper r/w data\n");
-	}
-	else {
-
-		i2c_oper_handle = i2c_oper;
-		fprintf(stdout, "Using i2c_oper r/w data\n");
+		fprintf(stderr, "Can't parse i2c bus number[%s]\n", argv[1]);
+		exit(-1);
 	}
 
-	/* Get i2c device address */	
+	/* Get i2c device address */
 	if (sscanf(argv[2], "0x%x", &addr) != 1) {
 
 		fprintf(stderr, "Can't parse i2c device address[%s]\n", argv[2]);
 		exit(-1);
 	}
 
-	if (addr < 0x3 || addr > 0x77) {
-
-		fprintf(stderr, "Invalid i2c device address:0x[%x], should be: 0x3 - 0x77\n", addr);
-		exit(-1);
-	}
-
 	/* Get i2c internal address bytes */
-	if (sscanf(argv[3], "%d", &msg.iaddr_bytes) != 1) {
+	if (sscanf(argv[3], "%u", &iaddr_bytes) != 1) {
 
 		fprintf(stderr, "Can't parse i2c internal address bytes[%s]\n", argv[3]);
 		exit(-2);
 	}
 
-	if (msg.iaddr_bytes <= 0 || msg.iaddr_bytes >= 4) {
-		
-		fprintf(stderr, "Ivalid i2c internal address bytes[%d], should be: 1 - 3\n", msg.iaddr_bytes);
-		exit(-2);
+	/* If specify ioctl using ioctl r/w i2c */
+	if (argc == 5 && (memcmp(argv[4], "ioctl", strlen("ioctl")) == 0)) {
+
+		i2c_read_handle = i2c_ioctl_read;
+		i2c_write_handle = i2c_ioctl_write;
+		fprintf(stdout, "Using i2c_ioctl_oper r/w data\n");
+	}
+	else {
+
+		fprintf(stdout, "Using i2c_oper r/w data\n");
 	}
 
-	/* Init i2c bus */	
-	if (i2c_init(argv[1], 5) != 0) {
+	/* Open i2c bus */
+	int bus;
+	if ((bus = i2c_open(bus_num)) == -1) {
 
-		fprintf(stderr, "Init i2c bus:%s error!\b", argv[1]);
+		fprintf(stderr, "Init i2c bus:%s error!\n", argv[1]);
 		exit(-3);
 	}
 
-	/* Init I2C_MSG */
-	msg.buf = buf;
-	msg.len = sizeof(buf);
-	msg.int_addr = 0x0;
-	msg.dev_addr = addr & 0xff;
+	/* Init i2c device */
+	I2CDevice device;
+	memset(&device, 0, sizeof(device));
 
-	/* Write 0 - 255 */
-	msg.oper = I2C_STORE;
+	device.bus = bus;
+	device.addr = addr & 0x3ff;
+	device.iaddr_bytes = iaddr_bytes;
+
+	size_t i;
+	unsigned char buf[256];
+	size_t buf_size = sizeof(buf);
+	memset(buf, 0, buf_size);
 
 	/* I/O r/w 0x00 - 0xff */
-	if (i2c_oper_handle == i2c_oper) {
+	if (i2c_read_handle == i2c_read) {
 
-		for (i = 0; i < msg.len; i++) {
+		for (i = 0; i < buf_size; i++) {
 
-			msg.buf[i] = i;
+			buf[i] = i;
 		}
 	}
 	/* ioctl r/w 0xff - 0x0 */
 	else {
 
-		for (i = 0; i < msg.len; i++) {
+		for (i = 0; i < buf_size; i++) {
 
-			msg.buf[i] = 0xff - i;
+			buf[i] = 0xff - i;
 		}
 	}
 
 	/* Print before write */
 	fprintf(stdout, "Write data:\n");
-	print_i2c_msg(&msg);
+	print_i2c_data(buf, buf_size);
 
-	if (i2c_oper_handle(&msg) != msg.len) {
+	if (i2c_write_handle(&device, 0x0, buf, buf_size) != buf_size) {
 
 		fprintf(stderr, "Write i2c error!\n");
 		exit(-4);
-	}	
+	}
 
 	fprintf(stdout, "\nWrite success, prepare read....\n");
 
 	/* Read */
 	usleep(100000);
-	msg.oper = I2C_LOAD;
-	memset(buf, 0, sizeof(buf));
-	
-	if (i2c_oper_handle(&msg) != msg.len) {
+	memset(buf, 0, buf_size);
+
+	if (i2c_read_handle(&device, 0x0, buf, buf_size) != buf_size) {
 
 		fprintf(stderr, "Read i2c error!\n");
 		exit(-5);
@@ -139,8 +133,9 @@ int main(int argc, char** argv)
 
 	/* Print read result */
 	fprintf(stdout, "Read data:\n");
-	print_i2c_msg(&msg);
+	print_i2c_data(buf, buf_size);
 
+	i2c_close(bus);
 	return 0;
 }
 

@@ -1,89 +1,117 @@
 libi2c
 =======
 
-## Description
-
-Linux userspace i2c operating library
+Linux userspace i2c library.
 
 
-## Feature
+## Features
+- Support C/C++ and Python.
 
-- Support single, double, three byte i2c internal address
+- Support multiple bus and devices.
 
-- Provide read/write/ioctl system call to operating i2c device
+- Support 7-bit and 10-bit i2c slave address.
 
-- Support 4 byte aligned write, read/write length are unlimited
+- Support 1 - 4 byte internal address, auto convert.
 
-- Using ioctl system call operate i2c can ignore i2c device ack signal and internal address
+- Provide read/write/ioctl functions to operate i2c device.
+
+- Support 4/16 byte aligned write, read/write length are unlimited.
+
+- Using ioctl functions operate i2c can ignore i2c device ack signal and internal address.
 
 ## Interface
 
-	/* Initialize i2c bus */
-	int i2c_init(const char *dev_name);
+	i2c_ioctl_write (once max 16 bytes) are more efficient than i2c_write (once max 4 bytes).
 
-	/* Using read/write system call operate i2c device */
-	int i2c_oper(P_I2C_MSG msg);
+	/* Close i2c bus */
+	void i2c_close(int bus);
 
-	/* Using ioctl system call operate i2c device */
-	int i2c_ioctl_oper(P_I2C_MSG msg);
- 	
+	/* Open i2c bus, return i2c bus fd */
+	int i2c_open(unsigned char bus_num);
+
+	/* I2C file I/O read, write */
+	ssize_t i2c_read(const I2CDevice *device, unsigned int iaddr, void *buf, size_t len);
+	ssize_t i2c_write(const I2CDevice *device, unsigned int iaddr, const void *buf, size_t len);
+
+	/* I2c ioctl read, write can set i2c flags */
+	ssize_t i2c_ioctl_read(const I2CDevice *device, unsigned int iaddr, void *buf, size_t len);
+	ssize_t i2c_ioctl_write(const I2CDevice *device, unsigned int iaddr, const void *buf, size_t len);
 
 ## Data structure
-	
-	typedef struct{
-        unsigned int    oper;                           /*      I2C operate, read or write */
-        unsigned char   *buf;                           /*      I2c read or write data buffer */
-        unsigned short  flags;                          /*      Kernel layer i2c operate flags */
-        unsigned int    len;                            /*      I2C read or write len   */
-        unsigned char   dev_addr;                       /*      I2C slave addresss      */
-        unsigned int    int_addr;                       /*      I2C device internal address     */
-        unsigned int    addr_bit;                       /*      I2C device internal address lengeh */
-	}I2C_MSG, *P_I2C_MSG;
 
-## Usage
+	typedef struct i2c_device {
+		int bus;					/* I2C Bus fd, return from i2c_open */
+		unsigned short addr;		/* I2C device(slave) address */
+		unsigned char tenbit;		/* I2C is 10 bit device address */
+		unsigned char delay;		/* I2C internal operation delay, unit microsecond */
+		unsigned short flags;		/* I2C i2c_ioctl_read/write flags */
+		unsigned short iaddr_bytes;	/* I2C device internal address bytes, such as: 24C04 1 byte, 24C64 2 bytes */
+	}I2CDevice;
 
-1. First call `i2c_init` initialize i2c device
+	Python device dict:
 
-		if (i2c_init("/dev/i2c-0") == -1){
+	required keys: bus, addr.
+	optional keys: tenbit(defult 0, 7-bit), delay(defualt 5ms), flags(defualt 0), iaddr_bytes(defualt 1 byte internal address).
+
+
+## C/C++ Usage
+
+1. First call `i2c_open` open i2c bus.
+
+		int bus;
+
+		/* Open i2c bus 0, /dev/i2c-0 */
+		if ((bus = i2c_open(0)) == -1) {
 
 			/* Error process */
 		}
 
-2. Second fill `I2C_MSG` struct, prepare read or write 
+2. Second fill `I2CDevice` struct, prepare read or write.
 
-		I2C_MSG msg
-		unsigned char buffer[128];
-	
-		bzero(&msg, sizeof(msg));
-		bzero(buffer, sizeof(buffer));
+		I2CDevice device;
+		memset(&device, 0, sizeof(device));
 
-		msg.oper	=	OPER_LOAD;	/*	Read */
-		msg.buf		=	buffer;		/*	Read buffer */
-		msg.len		=	32;			/*	Read 32 byte form i2c deivce to buffer */
-		msg.dev_addr= 	0x7A;		/*	I2C device address */
-		msg.int_addr=	0x10;		/*	Device internal address */
-		msg.addr_bit=	1;			/*	Device internal address is 1 byte */
+		device.bus	= bus;	/* Bus 0 */
+		device.addr = 0x50;	/* Slave address is 0x50, 7-bit */
+		device.iaddr_bytes = 1;	/* Device internal address is 1 byte */
 
-3. Call `i2c_oper` or `i2c_ioctl_oper` read or write i2c device
+3. Call `i2c_read/write` or `i2c_ioctl_read/write` read or write i2c device.
 
-		int ret;
+		unsigned char buffer[256];
+		ssize_t size = sizeof(buffer);
+		memset(buffer, 0, sizeof(buffer));
 
-		if ((ret = i2c_oper(&msg)) != msg.len){
+		/* From i2c 0x0 address read 256 bytes data to buffer */
+		if (i2c_read(&device, 0x0, buffer, size)) != size) {
 
 			/* Error process */
-			if (ret == -1){
-
-			}
-			/* Read data less than msg.len */
-			else{
-
-				/* Do something */
-			}
 		}
 
-		
+4. Close i2c bus `i2c_close(bus)`.
+
+		i2c_close(bus);
+
+## Python Usage
+
+	import ctypes
+	import pylibi2c
+
+	# Open i2c bus 0.
+	bus = pylibi2c.open(0)
+	if bus == -1:
+		# Error process
+		pass
+
+	# Fill I2CDevice dict.
+	device = {"bus": bus, "addr": 0x50}
+
+	# From i2c 0x0 address read 256 bytes data to buf.
+	buf = ctypes.create_string_buffer(256)
+	size = pylibi2c.ioctl_read(device, 0x0, buf, 256)
+
+
 ## Notice
 
-1. If i2c device do not have internal address, please use `i2c_ioctl_oper` function for read/write 
+1. If i2c device do not have internal address, please use `i2c_ioctl_read/write` function for read/write.
 
-2. If want ignore i2c device ack signal, please  use `i2c_ioctl_oper` function, set I2C_MSG.falgs as  `I2C_M_IGNORE_ACK`
+2. If want ignore i2c device ack signal, please use `i2c_ioctl_read/write` function, set I2CDevice.falgs as  `I2C_M_IGNORE_ACK`.
