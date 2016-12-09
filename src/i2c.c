@@ -343,7 +343,7 @@ static int i2c_select(int bus, unsigned long dev_addr, unsigned long tenbit)
 
 /*
 **	@brief	:	i2c delay
-**	#msec	:	microsecond to be delay
+**	#msec	:	milliscond to be delay
 */
 static void i2c_delay(unsigned char msec)
 {
