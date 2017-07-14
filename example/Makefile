@@ -1,14 +1,14 @@
 CROSS		=	
-CC			= $(CROSS)gcc
-AR			= $(CROSS)ar
+CC		= $(CROSS)gcc
+AR		= $(CROSS)ar
 CFLAGS		= -Wall -g
 LDSHFLAGS	= -rdynamic -shared 
 ARFLAGS		= rcv
-CFLAGS		+=	-I../src
+CFLAGS		+= -I../src
 LDFLAGS		= -L.. -li2c -Wl,-R -Wl,..
 
 OBJDIR=../objs
-TARGETS=i2c_test
+TARGETS=i2c_tools
 
 .PHONY:all clean objdir
 .SILENT:clean
@@ -21,7 +21,7 @@ objdir:
 clean:
 	$(RM) *.o a.out depend $(TARGETS) $(OBJDIR) -rf
 
-i2c_test: i2c_test.o
+i2c_tools: i2c_tools.o
 	$(CC) $(CFLAGS) -o $(OBJDIR)/$@ $^ $(LDFLAGS)
 
 depend:$(wildcard *.h *.c)

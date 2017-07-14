@@ -1,6 +1,15 @@
 #include <Python.h>
 #include "i2c.h"
 
+
+/* PyArg_ParseTuple format */
+#if PY_MAJOR_VERSION > 2
+static const char *format = "O!Iy#I";
+#else
+static const char *format = "O!Iw#I";
+#endif
+
+
 /* For test */
 static PyObject* add(PyObject *self, PyObject *args)
 {
@@ -123,11 +132,14 @@ static PyObject* f_read(PyObject *self, PyObject *args)
 	unsigned int len = 0;
 	unsigned int iaddr = 0;
 	unsigned char *buf = NULL;
+
+	Py_ssize_t size = 0;
 	PyObject *dict = NULL;
+
 	I2CDevice device;
 	memset(&device, 0, sizeof(device));
 
-	if (!PyArg_ParseTuple(args, "O!IwI", &PyDict_Type, &dict, &iaddr, &buf, &len)) {
+	if (!PyArg_ParseTuple(args, format, &PyDict_Type, &dict, &iaddr, &buf, &size, &len)) {
 
 		fprintf(stderr, "Get arguments error!\n");
 		result = -1;
@@ -136,6 +148,13 @@ static PyObject* f_read(PyObject *self, PyObject *args)
 
 	if (dict_to_i2c_device(dict, &device) == -1) {
 
+		result = -1;
+		goto out;
+	}
+
+	if (size < len) {
+
+		fprintf(stderr, "Read buffer size error: too small!\n");
 		result = -1;
 		goto out;
 	}
@@ -154,11 +173,14 @@ static PyObject* f_write(PyObject *self, PyObject *args)
 	unsigned int len = 0;
 	unsigned int iaddr = 0;
 	const unsigned char *buf = NULL;
+
+	Py_ssize_t size = 0;
 	PyObject *dict = NULL;
+
 	I2CDevice device;
 	memset(&device, 0, sizeof(device));
 
-	if (!PyArg_ParseTuple(args, "O!IwI", &PyDict_Type, &dict, &iaddr, &buf, &len)) {
+	if (!PyArg_ParseTuple(args, format, &PyDict_Type, &dict, &iaddr, &buf, &size, &len)) {
 
 		fprintf(stderr, "Get arguments error!\n");
 		result = -1;
@@ -167,6 +189,13 @@ static PyObject* f_write(PyObject *self, PyObject *args)
 
 	if (dict_to_i2c_device(dict, &device) == -1) {
 
+		result = -1;
+		goto out;
+	}
+
+	if (size < len) {
+
+		fprintf(stderr, "Write buffer size error: too small!\n");
 		result = -1;
 		goto out;
 	}
@@ -185,11 +214,14 @@ static PyObject* ioctl_read(PyObject *self, PyObject *args)
 	unsigned int len = 0;
 	unsigned int iaddr = 0;
 	unsigned char *buf = NULL;
+
+	Py_ssize_t size = 0;
 	PyObject *dict = NULL;
+
 	I2CDevice device;
 	memset(&device, 0, sizeof(device));
 
-	if (!PyArg_ParseTuple(args, "O!IwI", &PyDict_Type, &dict, &iaddr, &buf, &len)) {
+	if (!PyArg_ParseTuple(args, format, &PyDict_Type, &dict, &iaddr, &buf, &size, &len)) {
 
 		fprintf(stderr, "Get arguments error!\n");
 		result = -1;
@@ -198,6 +230,13 @@ static PyObject* ioctl_read(PyObject *self, PyObject *args)
 
 	if (dict_to_i2c_device(dict, &device) == -1) {
 
+		result = -1;
+		goto out;
+	}
+
+	if (size < len) {
+
+		fprintf(stderr, "Write buffer size error: too small!\n");
 		result = -1;
 		goto out;
 	}
@@ -216,11 +255,14 @@ static PyObject* ioctl_write(PyObject *self, PyObject *args)
 	unsigned int len = 0;
 	unsigned int iaddr = 0;
 	const unsigned char *buf = NULL;
+
+	Py_ssize_t size = 0;
 	PyObject *dict = NULL;
+
 	I2CDevice device;
 	memset(&device, 0, sizeof(device));
 
-	if (!PyArg_ParseTuple(args, "O!IwI", &PyDict_Type, &dict, &iaddr, &buf, &len)) {
+	if (!PyArg_ParseTuple(args, format, &PyDict_Type, &dict, &iaddr, &buf, &size, &len)) {
 
 		fprintf(stderr, "Get arguments error!\n");
 		result = -1;
@@ -233,6 +275,13 @@ static PyObject* ioctl_write(PyObject *self, PyObject *args)
 		goto out;
 	}
 
+	if (size < len) {
+
+		fprintf(stderr, "Read buffer size error: too small!\n");
+		result = -1;
+		goto out;
+	}
+
 	result = i2c_ioctl_write(&device, iaddr, buf, len);
 
 out:
@@ -240,8 +289,13 @@ out:
 }
 
 
+/* Module name and doc string */
+static const char module_name[] = "pylibi2c";
+static const char module_docstring[] = "Linux userspace i2c library";
+
+
 /* pylibi2c module methods */
-static PyMethodDef pylibi2cMethods[] = {
+static PyMethodDef pylibi2c_methods[] = {
 
 	{ "add", (PyCFunction)add, METH_VARARGS, "int add(x, y) -> x + y" },
 
@@ -260,8 +314,27 @@ static PyMethodDef pylibi2cMethods[] = {
 };
 
 
+#if PY_MAJOR_VERSION > 2
+static struct PyModuleDef pylibi2cmodule = {
+	PyModuleDef_HEAD_INIT,
+       	module_name,		/* Module name */
+	module_docstring,	/* Module pylibi2cMethods */
+       	-1,			/* size of per-interpreter state of the module, size of per-interpreter state of the module,*/
+	pylibi2c_methods,
+};
+#endif
+
+
+#if PY_MAJOR_VERSION > 2
+PyMODINIT_FUNC PyInit_pylibi2c(void)
+#else
 PyMODINIT_FUNC initpylibi2c(void)
+#endif
 {
-	Py_InitModule("pylibi2c", pylibi2cMethods);
+#if PY_MAJOR_VERSION > 2
+	return PyModule_Create(&pylibi2cmodule);
+#else
+	Py_InitModule3(module_name, pylibi2c_methods, module_docstring);
+#endif
 }
 

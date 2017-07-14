@@ -5,7 +5,10 @@ Linux userspace i2c library.
 
 
 ## Features
+
 - Support C/C++ and Python.
+
+- Support Python 2+, Python3+
 
 - Support multiple bus and devices.
 
@@ -18,6 +21,10 @@ Linux userspace i2c library.
 - Support 4/16 byte aligned write, read/write length are unlimited.
 
 - Using ioctl functions operate i2c can ignore i2c device ack signal and internal address.
+
+## Installation
+
+	sudo python setup.py install
 
 ## Interface
 
@@ -40,7 +47,7 @@ Linux userspace i2c library.
 ## Data structure
 
 	typedef struct i2c_device {
-		int bus;					/* I2C Bus fd, return from i2c_open */
+		int bus;			/* I2C Bus fd, return from i2c_open */
 		unsigned short addr;		/* I2C device(slave) address */
 		unsigned char tenbit;		/* I2C is 10 bit device address */
 		unsigned char delay;		/* I2C internal operation delay, unit microsecond */
