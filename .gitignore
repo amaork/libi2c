@@ -3,6 +3,10 @@
 *.ko
 *.obj
 *.elf
+__pycache__/
+*.py[cod]
+*$py.class
+
 
 # Libraries
 *.lib
@@ -26,3 +30,4 @@
 *.swp
 objs
 depend
+

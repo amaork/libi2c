@@ -26,6 +26,14 @@ Linux userspace i2c library.
 
 	sudo python setup.py install
 
+	or
+
+	sudo make install
+
+	or
+
+	sudo make install PYTHON=python3.5
+
 ## Interface
 
 	i2c_ioctl_write (once max 16 bytes) are more efficient than i2c_write (once max 4 bytes).
@@ -46,6 +54,8 @@ Linux userspace i2c library.
 
 ## Data structure
 
+**C/C++**
+
 	typedef struct i2c_device {
 		int bus;			/* I2C Bus fd, return from i2c_open */
 		unsigned short addr;		/* I2C device(slave) address */
@@ -55,7 +65,7 @@ Linux userspace i2c library.
 		unsigned short iaddr_bytes;	/* I2C device internal address bytes, such as: 24C04 1 byte, 24C64 2 bytes */
 	}I2CDevice;
 
-	Python device dict:
+**Python device dict:**
 
 	required keys: bus, addr.
 	optional keys: tenbit(defult 0, 7-bit), delay(defualt 5ms), flags(defualt 0), iaddr_bytes(defualt 1 byte internal address).
@@ -63,7 +73,7 @@ Linux userspace i2c library.
 
 ## C/C++ Usage
 
-1. First call `i2c_open` open i2c bus.
+**1. First call `i2c_open` open i2c bus.**
 
 		int bus;
 
@@ -73,7 +83,7 @@ Linux userspace i2c library.
 			/* Error process */
 		}
 
-2. Second fill `I2CDevice` struct, prepare read or write.
+**2. Second fill `I2CDevice` struct, prepare read or write.**
 
 		I2CDevice device;
 		memset(&device, 0, sizeof(device));
@@ -82,7 +92,7 @@ Linux userspace i2c library.
 		device.addr = 0x50;	/* Slave address is 0x50, 7-bit */
 		device.iaddr_bytes = 1;	/* Device internal address is 1 byte */
 
-3. Call `i2c_read/write` or `i2c_ioctl_read/write` read or write i2c device.
+**3. Call `i2c_read/write` or `i2c_ioctl_read/write` read or write i2c device.**
 
 		unsigned char buffer[256];
 		ssize_t size = sizeof(buffer);
@@ -94,7 +104,7 @@ Linux userspace i2c library.
 			/* Error process */
 		}
 
-4. Close i2c bus `i2c_close(bus)`.
+**4. Close i2c bus `i2c_close(bus)`.**
 
 		i2c_close(bus);
 
