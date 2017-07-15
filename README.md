@@ -22,6 +22,7 @@ Linux userspace i2c library.
 
 - Using ioctl functions operate i2c can ignore i2c device ack signal and internal address.
 
+
 ## Installation
 
 	sudo python setup.py install
@@ -32,7 +33,7 @@ Linux userspace i2c library.
 
 	or
 
-	sudo make install PYTHON=python3.5
+	sudo make install PYTHON=pythonX.X
 
 ## Interface
 
@@ -75,38 +76,38 @@ Linux userspace i2c library.
 
 **1. First call `i2c_open` open i2c bus.**
 
-		int bus;
+	int bus;
 
-		/* Open i2c bus 0, /dev/i2c-0 */
-		if ((bus = i2c_open(0)) == -1) {
+	/* Open i2c bus 0, /dev/i2c-0 */
+	if ((bus = i2c_open(0)) == -1) {
 
-			/* Error process */
-		}
+		/* Error process */
+	}
 
 **2. Second fill `I2CDevice` struct, prepare read or write.**
 
-		I2CDevice device;
-		memset(&device, 0, sizeof(device));
+	I2CDevice device;
+	memset(&device, 0, sizeof(device));
 
-		device.bus	= bus;	/* Bus 0 */
-		device.addr = 0x50;	/* Slave address is 0x50, 7-bit */
-		device.iaddr_bytes = 1;	/* Device internal address is 1 byte */
+	device.bus = bus;	/* Bus 0 */
+	device.addr = 0x50;	/* Slave address is 0x50, 7-bit */
+	device.iaddr_bytes = 1;	/* Device internal address is 1 byte */
 
 **3. Call `i2c_read/write` or `i2c_ioctl_read/write` read or write i2c device.**
 
-		unsigned char buffer[256];
-		ssize_t size = sizeof(buffer);
-		memset(buffer, 0, sizeof(buffer));
+	unsigned char buffer[256];
+	ssize_t size = sizeof(buffer);
+	memset(buffer, 0, sizeof(buffer));
 
-		/* From i2c 0x0 address read 256 bytes data to buffer */
-		if (i2c_read(&device, 0x0, buffer, size)) != size) {
+	/* From i2c 0x0 address read 256 bytes data to buffer */
+	if (i2c_read(&device, 0x0, buffer, size)) != size) {
 
-			/* Error process */
-		}
+		/* Error process */
+	}
 
 **4. Close i2c bus `i2c_close(bus)`.**
 
-		i2c_close(bus);
+	i2c_close(bus);
 
 ## Python Usage
 
@@ -125,7 +126,6 @@ Linux userspace i2c library.
 	# From i2c 0x0 address read 256 bytes data to buf.
 	buf = ctypes.create_string_buffer(256)
 	size = pylibi2c.ioctl_read(device, 0x0, buf, 256)
-
 
 ## Notice
 
