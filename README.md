@@ -43,7 +43,7 @@ Linux userspace i2c library.
 	void i2c_close(int bus);
 
 	/* Open i2c bus, return i2c bus fd */
-	int i2c_open(unsigned char bus_num);
+	int i2c_open(const char *bus_name);
 
 	/* I2C file I/O read, write */
 	ssize_t i2c_read(const I2CDevice *device, unsigned int iaddr, void *buf, size_t len);
@@ -78,8 +78,8 @@ Linux userspace i2c library.
 
 	int bus;
 
-	/* Open i2c bus 0, /dev/i2c-0 */
-	if ((bus = i2c_open(0)) == -1) {
+	/* Open i2c bus /dev/i2c-0 */
+	if ((bus = i2c_open("/dev/i2c-0")) == -1) {
 
 		/* Error process */
 	}
@@ -114,16 +114,16 @@ Linux userspace i2c library.
 	import ctypes
 	import pylibi2c
 
-	# Open i2c bus 0.
-	bus = pylibi2c.open(0)
+	# Open i2c bus /dev/i2c-0.
+	bus = pylibi2c.open('/dev/i2c-0')
 	if bus == -1:
 		# Error process
 		pass
 
-	# Fill I2CDevice dict.
+	# Operate i2c, device address 0x50.
 	device = {"bus": bus, "addr": 0x50}
 
-	# From i2c 0x0 address read 256 bytes data to buf.
+	# From i2c 0x0(internal address) read 256 bytes data to buf.
 	buf = ctypes.create_string_buffer(256)
 	size = pylibi2c.ioctl_read(device, 0x0, buf, 256)
 
