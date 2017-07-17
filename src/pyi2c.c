@@ -33,16 +33,16 @@ static PyObject* add(PyObject *self, PyObject *args)
 static PyObject* bus_open(PyObject *self, PyObject *args)
 {
 	int result = -1;
-	unsigned char bus_num = 0;
+	char *bus_name = NULL;
 
-	if (!PyArg_ParseTuple(args, "B", &bus_num)) {
+	if (!PyArg_ParseTuple(args, "s", &bus_name)) {
 
 		fprintf(stderr, "Get arguments error!\n");
 		result = -1;
 		goto out;
 	}
 
-	result = i2c_open(bus_num);
+	result = i2c_open(bus_name);
 
 out:
 	return Py_BuildValue("i", result);
@@ -216,8 +216,8 @@ static PyMethodDef pylibi2c_methods[] = {
 
 	{ "add", (PyCFunction)add, METH_VARARGS, "int add(x, y) -> x + y" },
 
-	{ "open", (PyCFunction)bus_open, METH_VARARGS, "int bus_open(unsigned char bus_num) -> bus fd or -1" },
-	{ "close", (PyCFunction)bus_close, METH_VARARGS, "void bus_close(int bus_fd)"},
+	{ "open", (PyCFunction)bus_open, METH_VARARGS, "int bus_open(const char *bus_name) -> bus fd or -1" },
+	{ "close", (PyCFunction)bus_close, METH_VARARGS, "void bus_close(int bus_fd), bus_fd is return from open"},
 
 	/* file r/w */
 	{ "read", (PyCFunction)f_read, METH_VARARGS, "int read(device_dict, iaddr, buf, len) -> read length or -1" },

@@ -9,8 +9,8 @@ import pylibi2c
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--bus', help='i2c bus, such as 1', type=int, required=True)
-    parser.add_argument('-d', '--dev_addr', help='i2c device address', type=int, required=True)
-    parser.add_argument('-i', '--iaddr', help='i2c internal address', type=int, default=0x0)
+    parser.add_argument('-d', '--dev_addr', help='i2c device address', type=str, required=True)
+    parser.add_argument('-i', '--iaddr', help='i2c internal address', type=str, default="0x0")
     parser.add_argument('-l', '--iaddr_bytes', help='i2c internal address bytes', type=int, default=1)
     parser.add_argument('-w', '--write', help='defualt is read, with -w read', type=bool, default=False)
     parser.add_argument('-s', '--size', help='read / write size', type=int, default=1)
@@ -26,12 +26,12 @@ if __name__ == '__main__':
     ioctl = args.get('ioctl')
     write = args.get('write')
     delay = args.get('delay')
-    dev_addr = args.get('dev_addr')
-    iaddr = args.get('iaddr')
+    iaddr = int(args.get('iaddr'), 16)
     iaddr_bytes = args.get('iaddr_bytes')
+    dev_addr = int(args.get('dev_addr'), 16)
 
     # Open i2c bus
-    bus = pylibi2c.open(bus)
+    bus = pylibi2c.open('/dev/i2c-{}'.format(bus))
     if bus == -1:
         print("Open i2c bus:{0:d} error!".format(bus))
         sys.exit(-1)
@@ -71,6 +71,6 @@ if __name__ == '__main__':
         if (i % 16 == 0):
             print('')
         six.print_("{0:02x} ".format(ord(buf[i])), end='')
-
-    print('')
+    else:
+        print('')
 

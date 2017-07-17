@@ -22,7 +22,7 @@ typedef struct i2c_device {
 void i2c_close(int bus);
 
 /* Open i2c bus, return i2c bus fd */
-int i2c_open(unsigned char bus_num);
+int i2c_open(const char *bus_name);
 
 /* I2C file I/O read, write */
 ssize_t i2c_read(const I2CDevice *device, unsigned int iaddr, void *buf, size_t len);

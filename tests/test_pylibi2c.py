@@ -17,7 +17,7 @@ class Pylibi2cTest(unittest.TestCase):
         return True
 
     def setUp(self):
-        bus = pylibi2c.open(1)
+        bus = pylibi2c.open('/dev/i2c-1')
         self.assertGreaterEqual(bus, 0)
         self.i2c_size = 256
         self.device = {'bus': bus, 'addr': 0x56}

@@ -35,21 +35,12 @@ static void i2c_iaddr_convert(unsigned int int_addr, unsigned int iaddr_bytes, u
 
 /*
 **	@brief		:	Open i2c bus
-**	#bus_num	:	i2c bus name such as: 1 --> /dev/i2c-1
+**	#bus_name	:	i2c bus name such as: /dev/i2c-1
 **	@return		:	failed return -1, success return i2c bus fd
 */
-int i2c_open(unsigned char bus_num)
+int i2c_open(const char *bus_name)
 {
 	int fd;
-	char bus_name[16];
-	memset(bus_name, 0, sizeof(bus_name));
-
-	/* Get i2c bus name */
-	if (snprintf(bus_name, sizeof(bus_name), "/dev/i2c-%u", bus_num) < 0) {
-
-		perror("Format i2c bus name error");
-		return -1;
-	}
 
 	/* Open i2c-bus devcice */
 	if ((fd = open(bus_name, O_RDWR)) == -1) {

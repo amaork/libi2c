@@ -73,9 +73,18 @@ int main(int argc, char** argv)
 
 	/* Open i2c bus */
 	int bus;
-	if ((bus = i2c_open(bus_num)) == -1) {
+	char bus_name[32];
+	memset(bus_name, 0, sizeof(bus_name));
 
-		fprintf(stderr, "Init i2c bus:%s error!\n", argv[1]);
+	if (snprintf(bus_name, sizeof(bus_name), "/dev/i2c-%u", bus_num) < 0) {
+
+		fprintf(stderr, "Format i2c bus name error!\n");
+		exit(-3);
+	}
+
+	if ((bus = i2c_open(bus_name)) == -1) {
+
+		fprintf(stderr, "Open i2c bus:%s error!\n", bus_name);
 		exit(-3);
 	}
 
