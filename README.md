@@ -61,7 +61,7 @@ Linux userspace i2c library.
 		int bus;			/* I2C Bus fd, return from i2c_open */
 		unsigned short addr;		/* I2C device(slave) address */
 		unsigned char tenbit;		/* I2C is 10 bit device address */
-		unsigned char delay;		/* I2C internal operation delay, unit microsecond */
+		unsigned char delay;		/* I2C internal operate delay, unit millisecond */
 		unsigned short flags;		/* I2C i2c_ioctl_read/write flags */
 		unsigned short iaddr_bytes;	/* I2C device internal address bytes, such as: 24C04 1 byte, 24C64 2 bytes */
 	}I2CDevice;
@@ -114,18 +114,23 @@ Linux userspace i2c library.
 	import ctypes
 	import pylibi2c
 
-	# Open i2c bus /dev/i2c-0.
-	bus = pylibi2c.open('/dev/i2c-0')
-	if bus == -1:
-		# Error process
-		pass
+	# Open i2c device @/dev/i2c-0, addr 0x50 .
+	i2c = pylibi2c.I2CDevice('/dev/i2c-0', 0x50);
+	
+	# Open i2c device @/dev/i2c-0, addr 0x50, 16bits internal address
+	i2c = pylibi2c.I2CDevice('/dev/i2c-0', 0x50, iaddr_bytes=2);
 
-	# Operate i2c, device address 0x50.
-	device = {"bus": bus, "addr": 0x50}
-
-	# From i2c 0x0(internal address) read 256 bytes data to buf.
+	# Python2
 	buf = ctypes.create_string_buffer(256)
-	size = pylibi2c.ioctl_read(device, 0x0, buf, 256)
+
+	# Python3
+	buf = bytes(256)
+
+	# Write data to i2c
+	size = i2c.write(0x0, buf, len(buf))
+
+	# From i2c 0x0(internal address) read 256 bytes data to buf, using ioctl_read.
+	size = i2c.ioctl_read(0x0, buf, len(buf))
 
 ## Notice
 

@@ -45,7 +45,6 @@ int i2c_open(const char *bus_name)
 	/* Open i2c-bus devcice */
 	if ((fd = open(bus_name, O_RDWR)) == -1) {
 
-		perror("Open i2c bus error");
 		return -1;
 	}
 

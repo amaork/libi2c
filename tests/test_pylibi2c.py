@@ -17,55 +17,69 @@ class Pylibi2cTest(unittest.TestCase):
         return True
 
     def setUp(self):
-        bus = pylibi2c.open('/dev/i2c-1')
-        self.assertGreaterEqual(bus, 0)
         self.i2c_size = 256
-        self.device = {'bus': bus, 'addr': 0x56}
+        self.i2c = pylibi2c.I2CDevice(bus="/dev/i2c-1", addr=0x56)
+
+    def test_init(self):
+        with self.assertRaises(TypeError):
+            pylibi2c.I2CDevice()
+
+        with self.assertRaises(TypeError):
+            pylibi2c.I2CDevice(1, 2)
+
+        with self.assertRaises(TypeError):
+            pylibi2c.I2CDevice("1", "2")
+
+        with self.assertRaises(TypeError):
+            pylibi2c.I2CDevice("/dev/i2c-1")
+
+        with self.assertRaises(IOError):
+            pylibi2c.I2CDevice("/dev/i2c-100", 0x56)
 
     def test_read(self):
         buf = ctypes.create_string_buffer(self.i2c_size)
-        self.assertEqual(pylibi2c.read(self.device, 0, buf, self.i2c_size), self.i2c_size)
-        self.assertEqual(pylibi2c.read(self.device, 0, buf, 100), 100)
-        self.assertEqual(pylibi2c.read(self.device, 0, buf, self.i2c_size + 1), -1)
-        self.assertEqual(pylibi2c.read(self.device, 13, buf, 13), 13)
-        self.assertEqual(pylibi2c.read(self.device, 13, buf, 1), 1)
+        self.assertEqual(self.i2c.read(0, buf, self.i2c_size), self.i2c_size)
+        self.assertEqual(self.i2c.read(0, buf, 100), 100)
+        self.assertEqual(self.i2c.read(0, buf, self.i2c_size + 1), -1)
+        self.assertEqual(self.i2c.read(13, buf, 13), 13)
+        self.assertEqual(self.i2c.read(13, buf, 1), 1)
 
     def test_write(self):
         w_buf = ctypes.create_string_buffer(self.i2c_size)
         for i in range(self.i2c_size):
             w_buf[i] = six.int2byte(i & 0xff)
 
-        self.assertEqual(pylibi2c.write(self.device, 13, w_buf, 13), 13)
-        self.assertEqual(pylibi2c.write(self.device, 1, w_buf, 1), 1)
+        self.assertEqual(self.i2c.write(13, w_buf, 13), 13)
+        self.assertEqual(self.i2c.write(1, w_buf, 1), 1)
 
-        self.assertEqual(pylibi2c.write(self.device, 0, w_buf, self.i2c_size), self.i2c_size)
-        self.assertEqual(pylibi2c.write(self.device, 0, w_buf, self.i2c_size + 1), -1)
+        self.assertEqual(self.i2c.write(0, w_buf, self.i2c_size), self.i2c_size)
+        self.assertEqual(self.i2c.write(0, w_buf, self.i2c_size + 1), -1)
 
         r_buf = ctypes.create_string_buffer(self.i2c_size)
-        self.assertEqual(pylibi2c.read(self.device, 0, r_buf, self.i2c_size), self.i2c_size)
+        self.assertEqual(self.i2c.read(0, r_buf, self.i2c_size), self.i2c_size)
         self.assertEqual(self.buf_equal_test(r_buf, w_buf), True)
 
     def test_ioctl_read(self):
         buf = ctypes.create_string_buffer(self.i2c_size)
-        self.assertEqual(pylibi2c.ioctl_read(self.device, 0, buf, self.i2c_size), self.i2c_size)
-        self.assertEqual(pylibi2c.ioctl_read(self.device, 0, buf, 100), 100)
-        self.assertEqual(pylibi2c.ioctl_read(self.device, 0, buf, self.i2c_size + 1), -1)
-        self.assertEqual(pylibi2c.ioctl_read(self.device, 13, buf, 13), 13)
-        self.assertEqual(pylibi2c.ioctl_read(self.device, 13, buf, 1), 1)
+        self.assertEqual(self.i2c.ioctl_read(0, buf, self.i2c_size), self.i2c_size)
+        self.assertEqual(self.i2c.ioctl_read(0, buf, 100), 100)
+        self.assertEqual(self.i2c.ioctl_read(0, buf, self.i2c_size + 1), -1)
+        self.assertEqual(self.i2c.ioctl_read(13, buf, 13), 13)
+        self.assertEqual(self.i2c.ioctl_read(13, buf, 1), 1)
 
     def test_ioctl_write(self):
         w_buf = ctypes.create_string_buffer(self.i2c_size)
         for i in range(self.i2c_size):
             w_buf[i] = six.int2byte(random.randint(0, 255))
 
-        self.assertEqual(pylibi2c.ioctl_write(self.device, 13, w_buf, 13), 13)
-        self.assertEqual(pylibi2c.ioctl_write(self.device, 1, w_buf, 1), 1)
+        self.assertEqual(self.i2c.ioctl_write(13, w_buf, 13), 13)
+        self.assertEqual(self.i2c.ioctl_write(1, w_buf, 1), 1)
 
-        self.assertEqual(pylibi2c.ioctl_write(self.device, 0, w_buf, self.i2c_size), self.i2c_size)
-        self.assertEqual(pylibi2c.ioctl_write(self.device, 0, w_buf, self.i2c_size + 1), -1)
+        self.assertEqual(self.i2c.ioctl_write(0, w_buf, self.i2c_size), self.i2c_size)
+        self.assertEqual(self.i2c.ioctl_write(0, w_buf, self.i2c_size + 1), -1)
 
         r_buf = ctypes.create_string_buffer(self.i2c_size)
-        self.assertEqual(pylibi2c.read(self.device, 0, r_buf, self.i2c_size), self.i2c_size)
+        self.assertEqual(self.i2c.read(0, r_buf, self.i2c_size), self.i2c_size)
         self.assertEqual(self.buf_equal_test(r_buf, w_buf), True)
 
 

@@ -36,10 +36,10 @@ libi2c.a:$(OBJECTS)
 libi2c.so:$(OBJECTS)
 	$(CC) $(LDSHFLAGS) -o $@ $^
 
-pylibi2c.so:
+pylibi2c.so:$(OBJECTS)
 	$(PYTHON) setup.py build_ext --inplace
 
-depend:$(SOURCES) $(HEADERS)
+depend:$(SOURCES) $(HEADERS) src/pyi2c.c
 	$(CC) $(CFLAGS) -MM $^ > $@
 
 -include depend

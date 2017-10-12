@@ -2,11 +2,17 @@
 #include "i2c.h"
 
 
+#define _VERSION_ "0.1"
+#define _NAME_ "pylibi2c"
+PyDoc_STRVAR(I2CDevice_name, "I2CDevice");
+PyDoc_STRVAR(pylibi2c_doc, "Linux userspace i2c library.\n");
+
+
 /* PyArg_ParseTuple format */
-#if PY_MAJOR_VERSION > 2
-static const char *format = "O!Iy#I";
+#if PY_MAJOR_VERSION >= 3
+static const char *format = "Iy#I";
 #else
-static const char *format = "O!Iw#I";
+static const char *format = "Iw#I";
 #endif
 
 
@@ -14,146 +20,126 @@ static const char *format = "O!Iw#I";
 enum I2CRW{READ, WRITE, IOCTL_READ, IOCTL_WRITE};
 
 
-/* For test */
-static PyObject* add(PyObject *self, PyObject *args)
-{
-	int x = 0;
-	int y = 0;
+PyDoc_STRVAR(I2CDeviceObject_type_doc, "I2CDevice(bus, address, tenbit=0, iaddr_bytes=1, delay=5, flags=0) -> I2C Device object.\n");
+typedef struct {
+    PyObject_HEAD;
+    I2CDevice dev;
+} I2CDeviceObject;
 
-	if (!PyArg_ParseTuple(args, "ii", &x, &y)) {
 
-		return NULL;
-	}
+static PyObject *I2CDevice_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 
-	return Py_BuildValue("i", x + y);
+    I2CDeviceObject *self;
+    if ((self = (I2CDeviceObject *)type->tp_alloc(type, 0)) == NULL) {
+
+        return NULL;
+    }
+
+    memset(&self->dev, 0, sizeof(self->dev));
+    self->dev.bus = -1;
+
+    /* 7 bits */
+    self->dev.tenbit = 0;
+
+    /* 5ms */
+    self->dev.delay = 5;
+
+    /* 1 byte internal address */
+    self->dev.iaddr_bytes = 1;
+
+    Py_INCREF(self);
+    return (PyObject *)self;
 }
 
 
-/* int bus_init(unsignd char bus_num) */
-static PyObject* bus_open(PyObject *self, PyObject *args)
-{
-	int result = -1;
+PyDoc_STRVAR(I2CDevice_close_doc, "close()\n\nClose i2c device.\n");
+static PyObject *I2CDevice_close(I2CDeviceObject *self) {
+
+    /* Close i2c bus */
+    if (self->dev.bus >= 0) {
+
+        i2c_close(self->dev.bus);
+    }
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static void I2CDevice_free(I2CDeviceObject *self) {
+
+    PyObject *ref = I2CDevice_close(self);
+    Py_XDECREF(ref);
+
+    Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+
+/* I2CDevice(bus, addr, tenbit=0, iaddr_bytes=1, delay=5, flags=0) */
+static int I2CDevice_init(I2CDeviceObject *self, PyObject *args, PyObject *kwds) {
+
 	char *bus_name = NULL;
+    static char *kwlist[] = {"bus", "addr", "tenbit", "iaddr_bytes", "delay", "flags", NULL};
 
-	if (!PyArg_ParseTuple(args, "s", &bus_name)) {
+    /* Bus name and device address is required */
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "sH|BBBH:__init__", kwlist,
+                &bus_name, &self->dev.addr, &self->dev.tenbit, &self->dev.iaddr_bytes, &self->dev.delay, &self->dev.flags)) {
 
-		fprintf(stderr, "Get arguments error!\n");
-		result = -1;
-		goto out;
+        return -1;
 	}
 
-	result = i2c_open(bus_name);
+    /* Open i2c bus */
+	if ((self->dev.bus = i2c_open(bus_name)) == -1) {
+        PyErr_SetFromErrno(PyExc_IOError);
+        return -1;
+    }
 
-out:
-	return Py_BuildValue("i", result);
+    return 0;
 }
 
 
-/* void bus_close(int bus_fd) */
-static PyObject* bus_close(PyObject *self, PyObject *args)
-{
-	int bus_fd = 0;
+static PyObject *I2CDevice_enter(PyObject *self, PyObject *args) {
 
-	if (!PyArg_ParseTuple(args, "i", &bus_fd)) {
+    if (!PyArg_ParseTuple(args, ""))
+        return NULL;
 
-		fprintf(stderr, "Get arguments error!\n");
-	}
-	else {
-
-		i2c_close(bus_fd);
-	}
-
-	return Py_BuildValue("");
+    Py_INCREF(self);
+    return self;
 }
 
 
-/* Convert python dict to stuct i2c_device, success retrun 0, failed -1 */
-static int dict_to_i2c_device(PyObject *dict, I2CDevice *device)
-{
-	PyObject *value = NULL;
-	struct dict_item {
-		const char *key;
-		unsigned int required;
-		unsigned int defualt;
-		char type;
-		void *data;
-	};
+static PyObject *I2CDevice_exit(I2CDeviceObject *self, PyObject *args) {
 
-	if (!dict || !device) {
+    PyObject *exc_type = 0;
+    PyObject *exc_value = 0;
+    PyObject *traceback = 0;
 
-		fprintf(stderr, "Args is NULL!\n");
-		return -1;
-	}
+    if (!PyArg_UnpackTuple(args, "__exit__", 3, 3, &exc_type, &exc_value, &traceback)) {
 
-	struct dict_item args_items[] = {
-		{ "bus", 1, 0, 'I', &device->bus },
-		{ "addr", 1, 0, 'S', &device->addr },
-		{ "tenbit", 0, 0, 'C', &device->tenbit },
-		{ "delay", 0, 5, 'C', &device->delay },
-		{ "flags", 0, 0, 'S', &device->flags },
-		{ "iaddr_bytes", 0, 1, 'C', &device->iaddr_bytes },
-		{ NULL, 0, 0, 0, NULL },
-	};
+        return 0;
+    }
 
-	if (!PyDict_Check(dict)) {
-
-		fprintf(stderr, "Device is not a dict!\n");
-		return -1;
-	}
-
-	long data = 0;
-	struct dict_item *item = args_items;
-	for (; item->key; item++) {
-
-		if (!(value = PyDict_GetItemString(dict, item->key)) && item->required) {
-
-			fprintf(stderr, "I2C %s is required!\n", item->key);
-			return -1;
-		}
-
-		/* If value do not set, using defualt value */
-		data = value ? PyLong_AsLong(value) : item->defualt;
-
-		/* Save data to I2CDevice */
-		switch (item->type) {
-
-			case 'I' : *(int*)item->data = data;break;
-			case 'C' : *(unsigned char*)item->data = data;break;
-			case 'S' : *(unsigned short*)item->data = data;break;
-			default	 : fprintf(stderr, "Parse %s error!\n", item->key);return -1;
-		}
-	}
-
-	return 0;
+    /* Close i2c bus */
+    I2CDevice_close(self);
+    Py_RETURN_FALSE;
 }
 
 
 /* i2c r/w operate */
-static int i2c_rw(PyObject *args, enum I2CRW rw)
-{
+static int i2c_rw(I2CDeviceObject *self, PyObject *args, enum I2CRW rw) {
+
+	I2CDevice device;
+	Py_ssize_t size = 0;
 	unsigned int len = 0;
 	unsigned int iaddr = 0;
 	unsigned char *buf = NULL;
-
-	Py_ssize_t size = 0;
-	PyObject *dict = NULL;
-
-	I2CDevice device;
-	memset(&device, 0, sizeof(device));
-
 	I2C_READ_HANDLE read_handle = NULL;
 	I2C_WRITE_HANDLE write_handle = NULL;
 
 	/* Get args from python */
-	if (!PyArg_ParseTuple(args, format, &PyDict_Type, &dict, &iaddr, &buf, &size, &len)) {
+	if (!PyArg_ParseTuple(args, format, &iaddr, &buf, &size, &len)) {
 
 		fprintf(stderr, "Get arguments error!\n");
-		return -1;
-	}
-
-	/* Convert python dict to I2CDevice */
-	if (dict_to_i2c_device(dict, &device) == -1) {
-
 		return -1;
 	}
 
@@ -173,85 +159,160 @@ static int i2c_rw(PyObject *args, enum I2CRW rw)
 		case	IOCTL_WRITE	:	write_handle = i2c_ioctl_write;break;
 	}
 
+    /* Copy data to device */
+    device = self->dev;
+
 	/* Read or write i2c device */
 	return read_handle ? read_handle(&device, iaddr, buf, len) : write_handle(&device, iaddr, buf, len);
 }
 
 
 /* file read */
-static PyObject* f_read(PyObject *self, PyObject *args)
-{
-	return Py_BuildValue("i", i2c_rw(args, READ));
+PyDoc_STRVAR(I2CDevice_read_doc, "read(iaddr, buf, size)\n\nRead #size bytes data from device #iaddress to #buf.\n");
+static PyObject* I2CDevice_read(I2CDeviceObject *self, PyObject *args) {
+
+	return Py_BuildValue("i", i2c_rw(self, args, READ));
 }
 
 
 /* file write */
-static PyObject* f_write(PyObject *self, PyObject *args)
-{
-	return Py_BuildValue("i", i2c_rw(args, WRITE));
+PyDoc_STRVAR(I2CDevice_write_doc, "write(iaddr, buf, size)\n\nWrite #size bytes data from #buf to device #iaddress.\n");
+static PyObject* I2CDevice_write(I2CDeviceObject *self, PyObject *args) {
+
+	return Py_BuildValue("i", i2c_rw(self, args, WRITE));
 }
 
 
 /* ioctl read */
-static PyObject* ioctl_read(PyObject *self, PyObject *args)
-{
-	return Py_BuildValue("i", i2c_rw(args, IOCTL_READ));
+PyDoc_STRVAR(I2CDevice_ioctl_read_doc, "ioctl_read(iaddr, buf, size)\n\nIoctl read #size bytes data from device #iaddress to #buf.\n");
+static PyObject* I2CDevice_ioctl_read(I2CDeviceObject *self, PyObject *args) {
+
+	return Py_BuildValue("i", i2c_rw(self, args, IOCTL_READ));
 }
 
 
 /* ioctl write */
-static PyObject* ioctl_write(PyObject *self, PyObject *args)
-{
-	return Py_BuildValue("i", i2c_rw(args, IOCTL_WRITE));
+PyDoc_STRVAR(I2CDevice_ioctl_write_doc, "ioctl_write(iaddr, buf, size)\n\nIoctl write #size bytes data from #buf to device #iaddress.\n");
+static PyObject* I2CDevice_ioctl_write(I2CDeviceObject *self, PyObject *args) {
+
+	return Py_BuildValue("i", i2c_rw(self, args, IOCTL_WRITE));
 }
 
 
-/* Module name and doc string */
-static const char module_name[] = "pylibi2c";
-static const char module_docstring[] = "Linux userspace i2c library";
-
-
 /* pylibi2c module methods */
-static PyMethodDef pylibi2c_methods[] = {
+static PyMethodDef I2CDevice_methods[] = {
 
-	{ "add", (PyCFunction)add, METH_VARARGS, "int add(x, y) -> x + y" },
-
-	{ "open", (PyCFunction)bus_open, METH_VARARGS, "int bus_open(const char *bus_name) -> bus fd or -1" },
-	{ "close", (PyCFunction)bus_close, METH_VARARGS, "void bus_close(int bus_fd), bus_fd is return from open"},
-
-	/* file r/w */
-	{ "read", (PyCFunction)f_read, METH_VARARGS, "int read(device_dict, iaddr, buf, len) -> read length or -1" },
-	{ "write", (PyCFunction)f_write, METH_VARARGS, "int write(device_dict, iaddr, buf, len) -> write lenght or -1" },
-
-	/* ioctl r/w */
-	{ "ioctl_read", (PyCFunction)ioctl_read, METH_VARARGS, "int ioctl_read(device_dict, iaddr, buf, len) -> read length or -1" },
-	{ "ioctl_write", (PyCFunction)ioctl_write, METH_VARARGS, "int ioctl_write(device_dict, iaddr, buf, len) -> write lenght or -1" },
-
-	{ NULL, NULL, 0, NULL },
+    {"read", (PyCFunction)I2CDevice_read, METH_VARARGS, I2CDevice_read_doc},
+    {"write", (PyCFunction)I2CDevice_write, METH_VARARGS, I2CDevice_write_doc},
+    {"close", (PyCFunction)I2CDevice_close, METH_NOARGS, I2CDevice_close_doc},
+    {"ioctl_read", (PyCFunction)I2CDevice_ioctl_read, METH_VARARGS, I2CDevice_ioctl_read_doc},
+    {"ioctl_write", (PyCFunction)I2CDevice_ioctl_write, METH_VARARGS, I2CDevice_ioctl_write_doc},
+    {"__enter__", (PyCFunction)I2CDevice_enter, METH_NOARGS, NULL},
+    {"__exit__", (PyCFunction)I2CDevice_exit, METH_NOARGS, NULL},
+	{NULL},
 };
 
 
-#if PY_MAJOR_VERSION > 2
+static PyTypeObject I2CDeviceObjectType = {
+#if PY_MAJOR_VERSION >= 3
+    PyVarObject_HEAD_INIT(NULL, 0)
+#else
+    PyObject_HEAD_INIT(NULL)
+    0,				            /* ob_size */
+#endif
+    I2CDevice_name,		        /* tp_name */
+    sizeof(I2CDeviceObject),	/* tp_basicsize */
+    0,			        	    /* tp_itemsize */
+    (destructor)I2CDevice_free,/* tp_dealloc */
+    0,				            /* tp_print */
+    0,				            /* tp_getattr */
+    0,				            /* tp_setattr */
+    0,				            /* tp_compare */
+    0,				            /* tp_repr */
+    0,				            /* tp_as_number */
+    0,				            /* tp_as_sequence */
+    0,				            /* tp_as_mapping */
+    0,				            /* tp_hash */
+    0,				            /* tp_call */
+    0,				            /* tp_str */
+    0,				            /* tp_getattro */
+    0,				            /* tp_setattro */
+    0,				            /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
+    I2CDeviceObject_type_doc,	/* tp_doc */
+    0,				            /* tp_traverse */
+    0,				            /* tp_clear */
+    0,				            /* tp_richcompare */
+    0,				            /* tp_weaklistoffset */
+    0,				            /* tp_iter */
+    0,				            /* tp_iternext */
+    I2CDevice_methods,		    /* tp_methods */
+    0,				            /* tp_members */
+    0,		                    /* tp_getset */
+    0,				            /* tp_base */
+    0,				            /* tp_dict */
+    0,				            /* tp_descr_get */
+    0,				            /* tp_descr_set */
+    0,				            /* tp_dictoffset */
+    (initproc)I2CDevice_init,	/* tp_init */
+    0,				            /* tp_alloc */
+    I2CDevice_new,		        /* tp_new */
+};
+
+
+static PyMethodDef pylibi2c_methods[] = {
+
+    {NULL}
+};
+
+
+#if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef pylibi2cmodule = {
 	PyModuleDef_HEAD_INIT,
-       	module_name,		/* Module name */
-	module_docstring,	/* Module pylibi2cMethods */
-       	-1,			/* size of per-interpreter state of the module, size of per-interpreter state of the module,*/
+    _NAME_,         /* Module name */
+	pylibi2c_doc,	/* Module pylibi2cMethods */
+    -1,			    /* size of per-interpreter state of the module, size of per-interpreter state of the module,*/
 	pylibi2c_methods,
 };
 #endif
 
 
-#if PY_MAJOR_VERSION > 2
+#if PY_MAJOR_VERSION >= 3
 PyMODINIT_FUNC PyInit_pylibi2c(void)
 #else
 PyMODINIT_FUNC initpylibi2c(void)
 #endif
 {
-#if PY_MAJOR_VERSION > 2
-	return PyModule_Create(&pylibi2cmodule);
+
+    PyObject *module;
+
+    if (PyType_Ready(&I2CDeviceObjectType) < 0) {
+#if PY_MAJOR_VERSION >= 3
+        return NULL;
 #else
-	Py_InitModule3(module_name, pylibi2c_methods, module_docstring);
+        return;
+#endif
+    }
+
+#if PY_MAJOR_VERSION >= 3
+    module = PyModule_Create(&pylibi2cmodule);
+    PyObject *version = PyUnicode_FromString(_VERSION_);
+#else
+	module = Py_InitModule3(_NAME_, pylibi2c_methods, pylibi2c_doc);
+    PyObject *version = PyString_FromString(_VERSION_);
+#endif
+
+    /* Set module version */
+    PyObject *dict = PyModule_GetDict(module);
+    PyDict_SetItemString(dict, "__version__", version);
+    Py_DECREF(version);
+
+    /* Register I2CDeviceObject */
+    Py_INCREF(&I2CDeviceObjectType);
+    PyModule_AddObject(module, I2CDevice_name, (PyObject *)&I2CDeviceObjectType);
+
+#if PY_MAJOR_VERSION >= 3
+    return module;
 #endif
 }
 
