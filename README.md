@@ -8,7 +8,7 @@ Linux userspace i2c library.
 
 - Support C/C++ and Python.
 
-- Support Python 2+, Python3+
+- Support Python2+, Python3+
 
 - Support multiple bus and devices.
 
@@ -66,10 +66,14 @@ Linux userspace i2c library.
 		unsigned short iaddr_bytes;	/* I2C device internal address bytes, such as: 24C04 1 byte, 24C64 2 bytes */
 	}I2CDevice;
 
-**Python device dict:**
+**Python**
 
-	required keys: bus, addr.
-	optional keys: tenbit(defult 0, 7-bit), delay(defualt 5ms), flags(defualt 0), iaddr_bytes(defualt 1 byte internal address).
+	I2CDevice object
+	I2CDevice(bus, addr, tenbit=False, delay=5, flags=0, iaddr_bytes=1)
+	tenbit, delay, flags, iaddr_bytes are attributes can setter/getter after init
+
+	required args: bus, addr.
+	optional args: tenbit(defult False, 7-bit), delay(defualt 5ms), flags(defualt 0), iaddr_bytes(defualt 1 byte internal address).
 
 
 ## C/C++ Usage
@@ -114,26 +118,32 @@ Linux userspace i2c library.
 	import ctypes
 	import pylibi2c
 
-	# Open i2c device @/dev/i2c-0, addr 0x50 .
-	i2c = pylibi2c.I2CDevice('/dev/i2c-0', 0x50);
+	# Open i2c device @/dev/i2c-0, addr 0x50.
+	i2c = pylibi2c.I2CDevice('/dev/i2c-0', 0x50)
 	
 	# Open i2c device @/dev/i2c-0, addr 0x50, 16bits internal address
-	i2c = pylibi2c.I2CDevice('/dev/i2c-0', 0x50, iaddr_bytes=2);
+	i2c = pylibi2c.I2CDevice('/dev/i2c-0', 0x50, iaddr_bytes=2)
+
+	# Set delay
+	i2c.delay = 10
+
+	# Set flags
+	i2c.flags = pylibi2c.I2C_M_IGNORE_NAK
 
 	# Python2
-	buf = ctypes.create_string_buffer(256)
+	buf = bytes(bytearray(256))
 
 	# Python3
 	buf = bytes(256)
 
-	# Write data to i2c
-	size = i2c.write(0x0, buf, len(buf))
+	# Write data to i2c, buf must be read-only type
+	size = i2c.write(0x0, buf)
 
-	# From i2c 0x0(internal address) read 256 bytes data to buf, using ioctl_read.
-	size = i2c.ioctl_read(0x0, buf, len(buf))
+	# From i2c 0x0(internal address) read 256 bytes data, using ioctl_read.
+	data = i2c.ioctl_read(0x0, 256)
 
 ## Notice
 
 1. If i2c device do not have internal address, please use `i2c_ioctl_read/write` function for read/write.
 
-2. If want ignore i2c device ack signal, please use `i2c_ioctl_read/write` function, set I2CDevice.falgs as  `I2C_M_IGNORE_ACK`.
+2. If want ignore i2c device nak signal, please use `i2c_ioctl_read/write` function, set I2CDevice.falgs as  `I2C_M_IGNORE_NCK`.

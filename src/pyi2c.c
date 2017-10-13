@@ -4,16 +4,9 @@
 
 #define _VERSION_ "0.1"
 #define _NAME_ "pylibi2c"
+#define _I2CDEV_MAX_SIZE_ 4096
 PyDoc_STRVAR(I2CDevice_name, "I2CDevice");
 PyDoc_STRVAR(pylibi2c_doc, "Linux userspace i2c library.\n");
-
-
-/* PyArg_ParseTuple format */
-#if PY_MAJOR_VERSION >= 3
-static const char *format = "Iy#I";
-#else
-static const char *format = "Iw#I";
-#endif
 
 
 /* Macros needed for Python 3 */
@@ -23,10 +16,6 @@ static const char *format = "Iw#I";
 #define PyInt_AsLong     PyLong_AsLong
 #define PyInt_Type       PyLong_Type
 #endif
-
-
-/* I2C r/w operate  */
-enum I2CRW {READ, WRITE, IOCTL_READ, IOCTL_WRITE};
 
 
 PyDoc_STRVAR(I2CDeviceObject_type_doc, "I2CDevice(bus, address, tenbit=False, iaddr_bytes=1, delay=5, flags=0) -> I2CDevice object.\n");
@@ -135,56 +124,61 @@ static PyObject *I2CDevice_exit(I2CDeviceObject *self, PyObject *args) {
 }
 
 
-/* i2c r/w operate */
-static int i2c_rw(I2CDeviceObject *self, PyObject *args, enum I2CRW rw) {
+/* i2c read device */
+static PyObject *i2c_read_device(I2CDeviceObject *self, PyObject *args, int ioctl) {
 
-	I2CDevice device;
-	Py_ssize_t size = 0;
+	int result;
 	unsigned int len = 0;
 	unsigned int iaddr = 0;
-	unsigned char *buf = NULL;
+	PyObject *bytearray = NULL;
+	char buf[_I2CDEV_MAX_SIZE_];
+	memset(buf, 0, sizeof(buf));
 	I2C_READ_HANDLE read_handle = NULL;
+
+	if (!PyArg_ParseTuple(args, "II:read", &iaddr, &len)) {
+
+		return NULL;
+	}
+
+	len = len > sizeof(buf) ? sizeof(buf) : len;
+	read_handle = ioctl ? i2c_ioctl_read : i2c_read;
+	result = read_handle(&self->dev, iaddr, buf, len);
+
+	if (result < 0) {
+		PyErr_SetFromErrno(PyExc_IOError);
+		return NULL;
+	}
+
+	if (result != len) {
+		perror("short read");
+		return NULL;
+	}
+
+	/* Copy data to bytearray and return */
+	bytearray = PyByteArray_FromStringAndSize(buf, len);
+	Py_INCREF(bytearray);
+	return bytearray;
+}
+
+
+/* i2c write device */
+static PyObject *i2c_write_device(I2CDeviceObject *self, PyObject *args, int ioctl) {
+
+	char *buf = NULL;
+	Py_ssize_t size = 0;
+	unsigned int iaddr = 0;
+	PyObject *result = NULL;
 	I2C_WRITE_HANDLE write_handle = NULL;
 
-	/* Get args from python */
-	if (!PyArg_ParseTuple(args, format, &iaddr, &buf, &size, &len)) {
-
-		fprintf(stderr, "Get arguments error!\n");
-		return -1;
+	if (!PyArg_ParseTuple(args, "Is#::write", &iaddr, &buf, &size)) {
+		return NULL;
 	}
 
-	/* Check buf size */
-	if (size < len) {
+	write_handle = ioctl ? i2c_ioctl_write : i2c_write;
+	result = Py_BuildValue("i", write_handle(&self->dev, iaddr, buf, size));
 
-		fprintf(stderr, "Buffer size error: too small!\n");
-		return -1;
-	}
-
-	/* Get r/w handle */
-	switch (rw) {
-
-		case	READ		:
-			read_handle = i2c_read;
-			break;
-
-		case	WRITE		:
-			write_handle = i2c_write;
-			break;
-
-		case	IOCTL_READ	:
-			read_handle = i2c_ioctl_read;
-			break;
-
-		case	IOCTL_WRITE	:
-			write_handle = i2c_ioctl_write;
-			break;
-	}
-
-	/* Copy data to device */
-	device = self->dev;
-
-	/* Read or write i2c device */
-	return read_handle ? read_handle(&device, iaddr, buf, len) : write_handle(&device, iaddr, buf, len);
+	Py_INCREF(result);
+	return result;
 }
 
 
@@ -192,7 +186,7 @@ static int i2c_rw(I2CDeviceObject *self, PyObject *args, enum I2CRW rw) {
 PyDoc_STRVAR(I2CDevice_read_doc, "read(iaddr, buf, size)\n\nRead #size bytes data from device #iaddress to #buf.\n");
 static PyObject *I2CDevice_read(I2CDeviceObject *self, PyObject *args) {
 
-	return Py_BuildValue("i", i2c_rw(self, args, READ));
+	return i2c_read_device(self, args, 0);
 }
 
 
@@ -200,7 +194,7 @@ static PyObject *I2CDevice_read(I2CDeviceObject *self, PyObject *args) {
 PyDoc_STRVAR(I2CDevice_write_doc, "write(iaddr, buf, size)\n\nWrite #size bytes data from #buf to device #iaddress.\n");
 static PyObject *I2CDevice_write(I2CDeviceObject *self, PyObject *args) {
 
-	return Py_BuildValue("i", i2c_rw(self, args, WRITE));
+	return i2c_write_device(self, args, 0);
 }
 
 
@@ -208,7 +202,7 @@ static PyObject *I2CDevice_write(I2CDeviceObject *self, PyObject *args) {
 PyDoc_STRVAR(I2CDevice_ioctl_read_doc, "ioctl_read(iaddr, buf, size)\n\nIoctl read #size bytes data from device #iaddress to #buf.\n");
 static PyObject *I2CDevice_ioctl_read(I2CDeviceObject *self, PyObject *args) {
 
-	return Py_BuildValue("i", i2c_rw(self, args, IOCTL_READ));
+	return i2c_read_device(self, args, 1);
 }
 
 
@@ -216,7 +210,7 @@ static PyObject *I2CDevice_ioctl_read(I2CDeviceObject *self, PyObject *args) {
 PyDoc_STRVAR(I2CDevice_ioctl_write_doc, "ioctl_write(iaddr, buf, size)\n\nIoctl write #size bytes data from #buf to device #iaddress.\n");
 static PyObject *I2CDevice_ioctl_write(I2CDeviceObject *self, PyObject *args) {
 
-	return Py_BuildValue("i", i2c_rw(self, args, IOCTL_WRITE));
+	return i2c_write_device(self, args, 1);
 }
 
 
