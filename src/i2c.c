@@ -156,10 +156,10 @@ ssize_t i2c_ioctl_write(const I2CDevice *device, unsigned int iaddr, const void 
 		ioctl_msg.buf	=	tmp_buf;
 		ioctl_msg.flags	=	flags;
 
-		ioctl_data.nmsgs=	1;
+		ioctl_data.nmsgs =	1;
 		ioctl_data.msgs	=	&ioctl_msg;
 
-		if (ioctl(device->bus, I2C_RDWR, (unsigned long)&ioctl_data) == -1){
+		if (ioctl(device->bus, I2C_RDWR, (unsigned long)&ioctl_data) == -1) {
 
 			perror("Ioctl write i2c error:");
 			return -1;
@@ -289,7 +289,7 @@ static void i2c_iaddr_convert(unsigned int iaddr, unsigned int len, unsigned cha
 	union {
 		unsigned int iaddr;
 		unsigned char caddr[INT_ADDR_MAX_BYTES];
-	}convert;
+	} convert;
 
 	/* I2C internal address order is big-endian, same with network order */
 	convert.iaddr = htonl(iaddr);

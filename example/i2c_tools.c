@@ -8,9 +8,9 @@ void print_i2c_data(const unsigned char *data, size_t len)
 {
 	int i = 0;
 
-	for (i = 0; i < len; i++){
+	for (i = 0; i < len; i++) {
 
-		if (i % 16 == 0){
+		if (i % 16 == 0) {
 
 			fprintf(stdout, "\n");
 		}
@@ -22,7 +22,7 @@ void print_i2c_data(const unsigned char *data, size_t len)
 }
 
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	I2C_READ_HANDLE i2c_read_handle = i2c_read;
 	I2C_WRITE_HANDLE i2c_write_handle = i2c_write;
@@ -31,10 +31,10 @@ int main(int argc, char** argv)
 	if (argc < 4) {
 
 		fprintf(stdout, "Usage:%s <bus> <dev_addr> <iaddr_bytes> [ioctl]\n"
-						"Such as:\n"
-						"\t24c04 i2c_test 1 0x50 1\n"
-						"\t24c64 i2c_test 1 0x50 2\n"
-						"\t24c64 i2c_test 1 0x50 2 ioctl\n", argv[0]);
+		        "Such as:\n"
+		        "\t24c04 i2c_test 1 0x50 1\n"
+		        "\t24c64 i2c_test 1 0x50 2\n"
+		        "\t24c64 i2c_test 1 0x50 2 ioctl\n", argv[0]);
 		exit(0);
 	}
 

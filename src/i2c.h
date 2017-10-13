@@ -16,7 +16,7 @@ typedef struct i2c_device {
 	unsigned char delay;		/* I2C internal operation delay, unit millisecond */
 	unsigned short flags;		/* I2C i2c_ioctl_read/write flags */
 	unsigned short iaddr_bytes;	/* I2C device internal address bytes, such as: 24C04 1 byte, 24C64 2 bytes */
-}I2CDevice;
+} I2CDevice;
 
 /* Close i2c bus */
 void i2c_close(int bus);
