@@ -24,16 +24,18 @@ void print_i2c_data(const unsigned char *data, size_t len)
 
 int main(int argc, char **argv)
 {
+	char i2c_dev_desc[128];
 	I2C_READ_HANDLE i2c_read_handle = i2c_read;
 	I2C_WRITE_HANDLE i2c_write_handle = i2c_write;
-	unsigned int addr = 0, iaddr_bytes = 0, bus_num = -1;
+	unsigned int addr = 0, iaddr_bytes = 0, page_bytes = 0, bus_num = -1;
 
-	if (argc < 4) {
+	if (argc < 5) {
 
-		fprintf(stdout, "Usage:%s <bus> <dev_addr> <iaddr_bytes> [ioctl]\n"
+		fprintf(stdout, "Usage:%s <bus_num> <dev_addr> <iaddr_bytes> <page_bytes> [ioctl]\n"
 		        "Such as:\n"
-		        "\t24c04 i2c_test 1 0x50 1\n"
-		        "\t24c64 i2c_test 1 0x50 2\n"
+		        "\t24c02 i2c_test 1 0x50 1 8\n"
+		        "\t24c04 i2c_test 1 0x50 1 16\n"
+		        "\t24c64 i2c_test 1 0x50 2 32\n"
 		        "\t24c64 i2c_test 1 0x50 2 ioctl\n", argv[0]);
 		exit(0);
 	}
@@ -41,26 +43,34 @@ int main(int argc, char **argv)
 	/* Get i2c bus number */
 	if (sscanf(argv[1], "%u", &bus_num) != 1) {
 
-		fprintf(stderr, "Can't parse i2c bus number[%s]\n", argv[1]);
+		fprintf(stderr, "Can't parse i2c 'bus_num' [%s]\n", argv[1]);
 		exit(-1);
 	}
 
 	/* Get i2c device address */
 	if (sscanf(argv[2], "0x%x", &addr) != 1) {
 
-		fprintf(stderr, "Can't parse i2c device address[%s]\n", argv[2]);
+		fprintf(stderr, "Can't parse i2c 'dev_addr' [%s]\n", argv[2]);
 		exit(-1);
 	}
 
 	/* Get i2c internal address bytes */
 	if (sscanf(argv[3], "%u", &iaddr_bytes) != 1) {
 
-		fprintf(stderr, "Can't parse i2c internal address bytes[%s]\n", argv[3]);
+		fprintf(stderr, "Can't parse i2c 'iaddr_bytes' [%s]\n", argv[3]);
 		exit(-2);
 	}
 
+	/* Get i2c page bytes number */
+	if (sscanf(argv[4], "%u", &page_bytes) != 1) {
+
+		fprintf(stderr, "Can't parse i2c 'page_bytes' [%s]\n", argv[4]);
+		exit(-2);
+	}
+
+
 	/* If specify ioctl using ioctl r/w i2c */
-	if (argc == 5 && (memcmp(argv[4], "ioctl", strlen("ioctl")) == 0)) {
+	if (argc == 6 && (memcmp(argv[5], "ioctl", strlen("ioctl")) == 0)) {
 
 		i2c_read_handle = i2c_ioctl_read;
 		i2c_write_handle = i2c_ioctl_write;
@@ -94,7 +104,11 @@ int main(int argc, char **argv)
 
 	device.bus = bus;
 	device.addr = addr & 0x3ff;
+	device.page_bytes = page_bytes;
 	device.iaddr_bytes = iaddr_bytes;
+
+	/* Print i2c device description */
+	fprintf(stdout, "%s\n", i2c_get_desc(&device, i2c_dev_desc, sizeof(i2c_dev_desc)));
 
 	size_t i;
 	unsigned char buf[256];

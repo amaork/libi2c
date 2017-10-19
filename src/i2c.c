@@ -1,8 +1,3 @@
-/*********************************************************(**************************************************************
-**	FileName:i2c_lib.c
-**	Date: Mar 17 2010 Ver 0.1
-**	Description: I2C E2PROM temperature sensor read write operation
-************************************************************************************************************************/
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -20,14 +15,12 @@
 /* I2C internal address max length */
 #define INT_ADDR_MAX_BYTES 4
 
-/* File I/O write max length */
-#define WRITE_MAX_BYTES 4
-
-/* Ioctl write max length */
-#define IOCTL_MAX_BYTES 16
+/* I2C page max bytes */
+#define PAGE_MAX_BYTES 4096
 
 #define GET_I2C_DELAY(delay) ((delay) == 0 ? I2C_DEFAULT_DELAY : (delay))
 #define GET_I2C_FLAGS(tenbit, flags) ((tenbit) ? ((flags) | I2C_M_TEN) : (flags))
+#define GET_WRITE_SIZE(addr, remain, page_bytes) ((addr) + (remain) > (page_bytes) ? (page_bytes) - (addr) : remain)
 
 static void i2c_delay(unsigned char delay);
 static int i2c_select(int bus, unsigned long dev_addr, unsigned long tenbit);
@@ -55,6 +48,23 @@ int i2c_open(const char *bus_name)
 void i2c_close(int bus)
 {
 	close(bus);
+}
+
+
+/*
+**	@brief		:	Get I2CDevice struct desc
+**	#device	    :	I2CDevice struct
+**  #buf        :   Description message buffer
+**  #size       :   #buf size
+**	@return		:	return i2c device desc
+*/
+char *i2c_get_desc(const I2CDevice *device, char *buf, size_t size)
+{
+	memset(buf, 0, size);
+	snprintf(buf, size, "Device address: 0x%x, tenbit: %s, internal(word) address: %d bytes, page max %d bytes, delay: %dms",
+	         device->addr, device->tenbit ? "True" : "False", device->iaddr_bytes, device->page_bytes, device->delay);
+
+	return buf;
 }
 
 
@@ -134,11 +144,11 @@ ssize_t i2c_ioctl_write(const I2CDevice *device, unsigned int iaddr, const void 
 
 	struct i2c_msg ioctl_msg;
 	struct i2c_rdwr_ioctl_data ioctl_data;
-	unsigned char tmp_buf[INT_ADDR_MAX_BYTES + IOCTL_MAX_BYTES];
+	unsigned char tmp_buf[PAGE_MAX_BYTES + INT_ADDR_MAX_BYTES];
 
 	while (remain > 0) {
 
-		size = remain >= IOCTL_MAX_BYTES ? IOCTL_MAX_BYTES : remain;
+		size = GET_WRITE_SIZE(iaddr % device->page_bytes, remain, device->page_bytes);
 
 		/* Convert i2c internal address */
 		memset(tmp_buf, 0, sizeof(tmp_buf));
@@ -237,7 +247,7 @@ ssize_t i2c_write(const I2CDevice *device, unsigned int iaddr, const void *buf, 
 	size_t cnt = 0, size = 0;
 	const unsigned char *buffer = buf;
 	unsigned char delay = GET_I2C_DELAY(device->delay);
-	unsigned char tmp_buf[WRITE_MAX_BYTES + INT_ADDR_MAX_BYTES];
+	unsigned char tmp_buf[PAGE_MAX_BYTES + INT_ADDR_MAX_BYTES];
 
 	/* Set i2c slave address */
 	if (i2c_select(device->bus, device->addr, device->tenbit) == -1) {
@@ -248,7 +258,7 @@ ssize_t i2c_write(const I2CDevice *device, unsigned int iaddr, const void *buf, 
 	/* Once only can write less than 4 byte */
 	while (remain > 0) {
 
-		size = remain >= WRITE_MAX_BYTES ? WRITE_MAX_BYTES : remain;
+		size = GET_WRITE_SIZE(iaddr % device->page_bytes, remain, device->page_bytes);
 
 		/* Convert i2c internal address */
 		memset(tmp_buf, 0, sizeof(tmp_buf));

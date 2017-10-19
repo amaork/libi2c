@@ -5,6 +5,8 @@
 #define _VERSION_ "0.1"
 #define _NAME_ "pylibi2c"
 #define _I2CDEV_MAX_SIZE_ 4096
+#define _I2CDEV_MAX_IADDR_BYTES_SIZE 4
+#define _I2CDEV_MAX_PAGE_BYTES_SIZE 1024
 PyDoc_STRVAR(I2CDevice_name, "I2CDevice");
 PyDoc_STRVAR(pylibi2c_doc, "Linux userspace i2c library.\n");
 
@@ -18,7 +20,7 @@ PyDoc_STRVAR(pylibi2c_doc, "Linux userspace i2c library.\n");
 #endif
 
 
-PyDoc_STRVAR(I2CDeviceObject_type_doc, "I2CDevice(bus, address, tenbit=False, iaddr_bytes=1, delay=5, flags=0) -> I2CDevice object.\n");
+PyDoc_STRVAR(I2CDeviceObject_type_doc, "I2CDevice(bus, address, tenbit=False, iaddr_bytes=1, page_bytes=8, delay=5, flags=0) -> I2CDevice object.\n");
 typedef struct {
 	PyObject_HEAD;
 	I2CDevice dev;
@@ -42,6 +44,9 @@ static PyObject *I2CDevice_new(PyTypeObject *type, PyObject *args, PyObject *kwd
 
 	/* 5ms */
 	self->dev.delay = 5;
+
+	/* 8 bytes per page */
+	self->dev.page_bytes = 8;
 
 	/* 1 byte internal address */
 	self->dev.iaddr_bytes = 1;
@@ -78,11 +83,12 @@ static void I2CDevice_free(I2CDeviceObject *self) {
 static int I2CDevice_init(I2CDeviceObject *self, PyObject *args, PyObject *kwds) {
 
 	char *bus_name = NULL;
-	static char *kwlist[] = {"bus", "addr", "tenbit", "iaddr_bytes", "delay", "flags", NULL};
+	static char *kwlist[] = {"bus", "addr", "tenbit", "iaddr_bytes", "page_bytes", "delay", "flags", NULL};
 
 	/* Bus name and device address is required */
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "sH|BBBH:__init__", kwlist,
-	                                 &bus_name, &self->dev.addr, &self->dev.tenbit, &self->dev.iaddr_bytes, &self->dev.delay, &self->dev.flags)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "sH|BBHBH:__init__", kwlist,
+	                                 &bus_name, &self->dev.addr,
+	                                 &self->dev.tenbit, &self->dev.iaddr_bytes, &self->dev.page_bytes, &self->dev.delay, &self->dev.flags)) {
 
 		return -1;
 	}
@@ -121,6 +127,25 @@ static PyObject *I2CDevice_exit(I2CDeviceObject *self, PyObject *args) {
 	/* Close i2c bus */
 	I2CDevice_close(self);
 	Py_RETURN_FALSE;
+}
+
+
+/* str */
+static PyObject *I2CDevice_str(PyObject *object) {
+
+	char desc[128];
+	PyObject *dev_desc = NULL;
+	I2CDeviceObject *self = (I2CDeviceObject *)object;
+	i2c_get_desc(&self->dev, desc, sizeof(desc));
+
+#if PY_MAJOR_VERSION >= 3
+	dev_desc = PyUnicode_FromString(desc);
+#else
+	dev_desc = PyString_FromString(desc);
+#endif
+
+	Py_INCREF(dev_desc);
+	return dev_desc;
 }
 
 
@@ -341,7 +366,43 @@ static int I2CDevice_set_tenbit(I2CDeviceObject *self, PyObject *value, void *cl
 
 
 /* iaddr_bytes */
-PyDoc_STRVAR(I2CDevice_iaddr_bytes_doc, "1, 1 byte internal address, such as 24C04\n\n"
+PyDoc_STRVAR(I2CDevice_page_bytes_doc, "i2c EEPROM max number of bytes per page (must be divisible by 8)\n\n"
+             "8, 8 bytes per page, such as 24C01/24C02\n\n"
+             "16, 16 bytes per page, such as 24C04/24C08/24C16\n\n"
+             "32, 32 bytes per page, such as 24C32/24C64\n\n");
+static PyObject *I2CDevice_get_page_bytes(I2CDeviceObject *self, void *closure) {
+
+	PyObject *result = Py_BuildValue("I", self->dev.page_bytes);
+	Py_INCREF(result);
+	return result;
+}
+
+static int I2CDevice_set_page_bytes(I2CDeviceObject *self, PyObject *value, void *closeure) {
+
+	int page_bytes = 0;
+
+	if (check_user_input("page_bytes", value, 8, _I2CDEV_MAX_PAGE_BYTES_SIZE) != 0) {
+
+		return -1;
+	}
+
+	page_bytes = PyLong_AsLong(value);
+
+	/* Divisible by 8 */
+	if (page_bytes % 8) {
+		PyErr_SetString(PyExc_ValueError, "The 'page_bytes' must be divisible by 8");
+		return -1;
+	}
+
+	self->dev.page_bytes = page_bytes;
+	return 0;
+}
+
+
+/* iaddr_bytes */
+PyDoc_STRVAR(I2CDevice_iaddr_bytes_doc, "I2C device internal(word) address bytes.\n\n"
+             "0, special device, without internal address\n\n"
+             "1, 1 byte internal address, such as 24C04\n\n"
              "2, 2 byte internal address, such as 24C64\n\n"
              "2, 3 byte internal address, such as 24C1024\n\n");
 static PyObject *I2CDevice_get_iaddr_bytes(I2CDeviceObject *self, void *closure) {
@@ -353,7 +414,7 @@ static PyObject *I2CDevice_get_iaddr_bytes(I2CDeviceObject *self, void *closure)
 
 static int I2CDevice_set_iaddr_bytes(I2CDeviceObject *self, PyObject *value, void *closeure) {
 
-	if (check_user_input("iaddr_bytes", value, 1, 3) != 0) {
+	if (check_user_input("iaddr_bytes", value, 0, _I2CDEV_MAX_IADDR_BYTES_SIZE) != 0) {
 
 		return -1;
 	}
@@ -368,6 +429,7 @@ static PyGetSetDef I2CDevice_getseters[] = {
 	{"flags", (getter)I2CDevice_get_flags, (setter)I2CDevice_set_flags, I2CDevice_flags_doc},
 	{"delay", (getter)I2CDevice_get_delay, (setter)I2CDevice_set_delay, I2CDevice_delay_doc},
 	{"tenbit", (getter)I2CDevice_get_tenbit, (setter)I2CDevice_set_tenbit, I2CDevice_tenbit_doc},
+	{"page_bytes", (getter)I2CDevice_get_page_bytes, (setter)I2CDevice_set_page_bytes, I2CDevice_page_bytes_doc},
 	{"iaddr_bytes", (getter)I2CDevice_get_iaddr_bytes, (setter)I2CDevice_set_iaddr_bytes, I2CDevice_iaddr_bytes_doc},
 	{NULL},
 };
@@ -394,7 +456,7 @@ static PyTypeObject I2CDeviceObjectType = {
 	0,				            /* tp_as_mapping */
 	0,				            /* tp_hash */
 	0,				            /* tp_call */
-	0,				            /* tp_str */
+	I2CDevice_str,	            /* tp_str */
 	0,				            /* tp_getattro */
 	0,				            /* tp_setattro */
 	0,				            /* tp_as_buffer */

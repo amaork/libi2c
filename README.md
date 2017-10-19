@@ -18,7 +18,7 @@ Linux userspace i2c library.
 
 - Provide read/write/ioctl functions to operate i2c device.
 
-- Support 4/16 byte aligned write, read/write length are unlimited.
+- Support 8/16/32/64/128/256 bytes page aligned write, read/write length are unlimited.
 
 - Using ioctl functions operate i2c can ignore i2c device ack signal and internal address.
 
@@ -63,17 +63,18 @@ Linux userspace i2c library.
 		unsigned char tenbit;		/* I2C is 10 bit device address */
 		unsigned char delay;		/* I2C internal operate delay, unit millisecond */
 		unsigned short flags;		/* I2C i2c_ioctl_read/write flags */
-		unsigned short iaddr_bytes;	/* I2C device internal address bytes, such as: 24C04 1 byte, 24C64 2 bytes */
+		unsigned int page_bytes;    	/* I2C max number of bytes per page, 1K/2K 8, 4K/8K/16K 16, 32K/64K 32 etc */
+		unsigned int iaddr_bytes;	/* I2C device internal(word) address bytes, such as: 24C04 1 byte, 24C64 2 bytes */
 	}I2CDevice;
 
 **Python**
 
 	I2CDevice object
-	I2CDevice(bus, addr, tenbit=False, delay=5, flags=0, iaddr_bytes=1)
-	tenbit, delay, flags, iaddr_bytes are attributes can setter/getter after init
+	I2CDevice(bus, addr, tenbit=False, iaddr_bytes=1, page_bytes=8, delay=5, flags=0)
+	tenbit, delay, flags, page_bytes, iaddr_bytes are attributes can setter/getter after init
 
 	required args: bus, addr.
-	optional args: tenbit(defult False, 7-bit), delay(defualt 5ms), flags(defualt 0), iaddr_bytes(defualt 1 byte internal address).
+	optional args: tenbit(defult False, 7-bit), delay(defualt 5ms), flags(defualt 0), iaddr_bytes(defualt 1 byte internal address), page_bytes(default 8 bytes per page).
 
 
 ## C/C++ Usage
@@ -93,9 +94,11 @@ Linux userspace i2c library.
 	I2CDevice device;
 	memset(&device, 0, sizeof(device));
 
+	/* 24C04 */
 	device.bus = bus;	/* Bus 0 */
 	device.addr = 0x50;	/* Slave address is 0x50, 7-bit */
 	device.iaddr_bytes = 1;	/* Device internal address is 1 byte */
+	device.page_bytes = 16; /* Device are capable of 16 bytes per page */
 
 **3. Call `i2c_read/write` or `i2c_ioctl_read/write` read or write i2c device.**
 
@@ -120,12 +123,15 @@ Linux userspace i2c library.
 
 	# Open i2c device @/dev/i2c-0, addr 0x50.
 	i2c = pylibi2c.I2CDevice('/dev/i2c-0', 0x50)
-	
+
 	# Open i2c device @/dev/i2c-0, addr 0x50, 16bits internal address
 	i2c = pylibi2c.I2CDevice('/dev/i2c-0', 0x50, iaddr_bytes=2)
 
 	# Set delay
 	i2c.delay = 10
+
+	# Set page_bytes
+	i2c.page_bytes = 16
 
 	# Set flags
 	i2c.flags = pylibi2c.I2C_M_IGNORE_NAK
@@ -144,6 +150,6 @@ Linux userspace i2c library.
 
 ## Notice
 
-1. If i2c device do not have internal address, please use `i2c_ioctl_read/write` function for read/write.
+1. If i2c device do not have internal address, please use `i2c_ioctl_read/write` function for read/write, set`'iaddr_bytes=0`.
 
 2. If want ignore i2c device nak signal, please use `i2c_ioctl_read/write` function, set I2CDevice.falgs as  `I2C_M_IGNORE_NCK`.
