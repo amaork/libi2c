@@ -10,7 +10,7 @@
 
 
 /* I2C default delay */
-#define I2C_DEFAULT_DELAY 5
+#define I2C_DEFAULT_DELAY 1
 
 /* I2C internal address max length */
 #define INT_ADDR_MAX_BYTES 4
@@ -23,8 +23,6 @@
 #define GET_WRITE_SIZE(addr, remain, page_bytes) ((addr) + (remain) > (page_bytes) ? (page_bytes) - (addr) : remain)
 
 static void i2c_delay(unsigned char delay);
-static int i2c_select(int bus, unsigned long dev_addr, unsigned long tenbit);
-static void i2c_iaddr_convert(unsigned int int_addr, unsigned int iaddr_bytes, unsigned char *addr);
 
 /*
 **	@brief		:	Open i2c bus
@@ -52,13 +50,33 @@ void i2c_close(int bus)
 
 
 /*
+**	@brief		:	Initialize I2CDevice with defualt value
+**	#device	    :	I2CDevice struct
+*/
+void i2c_init_device(I2CDevice *device)
+{
+	/* 7 bit device address */
+	device->tenbit = 0;
+
+	/* 1ms delay */
+	device->delay = 1;
+
+	/* 8 bytes per page */
+	device->page_bytes = 8;
+
+	/* 1 byte internal(word) address */
+	device->iaddr_bytes = 1;
+}
+
+
+/*
 **	@brief		:	Get I2CDevice struct desc
 **	#device	    :	I2CDevice struct
 **  #buf        :   Description message buffer
 **  #size       :   #buf size
 **	@return		:	return i2c device desc
 */
-char *i2c_get_desc(const I2CDevice *device, char *buf, size_t size)
+char *i2c_get_device_desc(const I2CDevice *device, char *buf, size_t size)
 {
 	memset(buf, 0, size);
 	snprintf(buf, size, "Device address: 0x%x, tenbit: %s, internal(word) address: %d bytes, page max %d bytes, delay: %dms",
@@ -294,7 +312,7 @@ ssize_t i2c_write(const I2CDevice *device, unsigned int iaddr, const void *buf, 
 **	#len	:	i2c device internal address length
 **	#addr	:	save convert address
 */
-static void i2c_iaddr_convert(unsigned int iaddr, unsigned int len, unsigned char *addr)
+void i2c_iaddr_convert(unsigned int iaddr, unsigned int len, unsigned char *addr)
 {
 	union {
 		unsigned int iaddr;
@@ -322,7 +340,7 @@ static void i2c_iaddr_convert(unsigned int iaddr, unsigned int len, unsigned cha
 **	#tenbit		:	i2c device address is tenbit
 **	#return		:	success return 0, failed return -1
 */
-static int i2c_select(int bus, unsigned long dev_addr, unsigned long tenbit)
+int i2c_select(int bus, unsigned long dev_addr, unsigned long tenbit)
 {
 	/* Set i2c device address bit */
 	if (ioctl(bus, I2C_TENBIT, tenbit)) {

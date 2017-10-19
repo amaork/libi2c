@@ -25,8 +25,17 @@ void i2c_close(int bus);
 /* Open i2c bus, return i2c bus fd */
 int i2c_open(const char *bus_name);
 
+/* Initialize I2CDevice with default value */
+void i2c_init_device(I2CDevice *device);
+
 /* Get i2c device description */
-char *i2c_get_desc(const I2CDevice *device, char *buf, size_t size);
+char *i2c_get_device_desc(const I2CDevice *device, char *buf, size_t size);
+
+/* Select i2c device on i2c bus */
+int i2c_select(int bus, unsigned long dev_addr, unsigned long tenbit);
+
+/* I2C internal(word) address convert */
+void i2c_iaddr_convert(unsigned int int_addr, unsigned int iaddr_bytes, unsigned char *addr);
 
 /* I2C file I/O read, write */
 ssize_t i2c_read(const I2CDevice *device, unsigned int iaddr, void *buf, size_t len);

@@ -101,6 +101,7 @@ int main(int argc, char **argv)
 	/* Init i2c device */
 	I2CDevice device;
 	memset(&device, 0, sizeof(device));
+	i2c_init_device(&device);
 
 	device.bus = bus;
 	device.addr = addr & 0x3ff;
@@ -108,7 +109,7 @@ int main(int argc, char **argv)
 	device.iaddr_bytes = iaddr_bytes;
 
 	/* Print i2c device description */
-	fprintf(stdout, "%s\n", i2c_get_desc(&device, i2c_dev_desc, sizeof(i2c_dev_desc)));
+	fprintf(stdout, "%s\n", i2c_get_device_desc(&device, i2c_dev_desc, sizeof(i2c_dev_desc)));
 
 	size_t i;
 	unsigned char buf[256];

@@ -20,7 +20,7 @@ PyDoc_STRVAR(pylibi2c_doc, "Linux userspace i2c library.\n");
 #endif
 
 
-PyDoc_STRVAR(I2CDeviceObject_type_doc, "I2CDevice(bus, address, tenbit=False, iaddr_bytes=1, page_bytes=8, delay=5, flags=0) -> I2CDevice object.\n");
+PyDoc_STRVAR(I2CDeviceObject_type_doc, "I2CDevice(bus, address, tenbit=False, iaddr_bytes=1, page_bytes=8, delay=1, flags=0) -> I2CDevice object.\n");
 typedef struct {
 	PyObject_HEAD;
 	I2CDevice dev;
@@ -37,19 +37,7 @@ static PyObject *I2CDevice_new(PyTypeObject *type, PyObject *args, PyObject *kwd
 	}
 
 	memset(&self->dev, 0, sizeof(self->dev));
-	self->dev.bus = -1;
-
-	/* 7 bits */
-	self->dev.tenbit = 0;
-
-	/* 5ms */
-	self->dev.delay = 5;
-
-	/* 8 bytes per page */
-	self->dev.page_bytes = 8;
-
-	/* 1 byte internal address */
-	self->dev.iaddr_bytes = 1;
+	i2c_init_device(&self->dev);
 
 	Py_INCREF(self);
 	return (PyObject *)self;
@@ -79,7 +67,7 @@ static void I2CDevice_free(I2CDeviceObject *self) {
 }
 
 
-/* I2CDevice(bus, addr, tenbit=0, iaddr_bytes=1, delay=5, flags=0) */
+/* I2CDevice(bus, addr, tenbit=0, iaddr_bytes=1, page_bytes=8, delay=1, flags=0) */
 static int I2CDevice_init(I2CDeviceObject *self, PyObject *args, PyObject *kwds) {
 
 	char *bus_name = NULL;
@@ -136,7 +124,7 @@ static PyObject *I2CDevice_str(PyObject *object) {
 	char desc[128];
 	PyObject *dev_desc = NULL;
 	I2CDeviceObject *self = (I2CDeviceObject *)object;
-	i2c_get_desc(&self->dev, desc, sizeof(desc));
+	i2c_get_device_desc(&self->dev, desc, sizeof(desc));
 
 #if PY_MAJOR_VERSION >= 3
 	dev_desc = PyUnicode_FromString(desc);

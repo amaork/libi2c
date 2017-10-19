@@ -7,7 +7,7 @@ class Pylibi2cTest(unittest.TestCase):
     def setUp(self):
         self.i2c_size = 256
         # 24C04 E2PROM test
-        self.i2c = pylibi2c.I2CDevice(bus="/dev/i2c-1", addr=0x56, delay=1, page_bytes=16)
+        self.i2c = pylibi2c.I2CDevice(bus="/dev/i2c-1", addr=0x56, page_bytes=16)
 
     def test_init(self):
         with self.assertRaises(TypeError):
@@ -70,10 +70,10 @@ class Pylibi2cTest(unittest.TestCase):
 
     def test_delay(self):
         i2c = pylibi2c.I2CDevice("/dev/i2c-1", 0x56)
-        self.assertEqual(i2c.delay, 5)
-
-        i2c = pylibi2c.I2CDevice("/dev/i2c-1", 0x56, delay=1)
         self.assertEqual(i2c.delay, 1)
+
+        i2c = pylibi2c.I2CDevice("/dev/i2c-1", 0x56, delay=0)
+        self.assertEqual(i2c.delay, 0)
 
         with self.assertRaises(TypeError):
             i2c.delay = "100"

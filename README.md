@@ -70,11 +70,11 @@ Linux userspace i2c library.
 **Python**
 
 	I2CDevice object
-	I2CDevice(bus, addr, tenbit=False, iaddr_bytes=1, page_bytes=8, delay=5, flags=0)
+	I2CDevice(bus, addr, tenbit=False, iaddr_bytes=1, page_bytes=8, delay=1, flags=0)
 	tenbit, delay, flags, page_bytes, iaddr_bytes are attributes can setter/getter after init
 
 	required args: bus, addr.
-	optional args: tenbit(defult False, 7-bit), delay(defualt 5ms), flags(defualt 0), iaddr_bytes(defualt 1 byte internal address), page_bytes(default 8 bytes per page).
+	optional args: tenbit(defult False, 7-bit), delay(defualt 1ms), flags(defualt 0), iaddr_bytes(defualt 1 byte internal address), page_bytes(default 8 bytes per page).
 
 
 ## C/C++ Usage

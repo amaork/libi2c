@@ -1,7 +1,6 @@
-CROSS		=	
 PYTHON		= python
-CC		= $(CROSS)gcc
-AR		= $(CROSS)ar
+CC			= $(CROSS)gcc
+AR			= $(CROSS)ar
 CFLAGS		= -Wall -g
 LDSHFLAGS	= -rdynamic -shared 
 ARFLAGS		= rcv
