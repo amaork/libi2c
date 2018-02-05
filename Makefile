@@ -1,7 +1,7 @@
 PYTHON		= python
-CC			= $(CROSS)gcc
-AR			= $(CROSS)ar
-CFLAGS		= -Wall -g
+CC		= $(CROSS)gcc
+AR		= $(CROSS)ar
+CFLAGS		= -Wall -g -fPIC
 LDSHFLAGS	= -rdynamic -shared 
 ARFLAGS		= rcv
 CODE_STYLE	= astyle --align-pointer=name --align-reference=name --suffix=none --break-blocks --pad-oper --pad-header --break-blocks --keep-one-line-blocks --indent-switches --indent=tab=4
