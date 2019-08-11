@@ -4,7 +4,7 @@ AR		= $(CROSS)ar
 CFLAGS		= -Wall -g -fPIC
 LDSHFLAGS	= -rdynamic -shared 
 ARFLAGS		= rcv
-CODE_STYLE	= astyle --align-pointer=name --align-reference=name --suffix=none --break-blocks --pad-oper --pad-header --break-blocks --keep-one-line-blocks --indent-switches --indent=tab=4
+CODE_STYLE	= astyle --align-pointer=name --align-reference=name --suffix=none --break-blocks --pad-oper --pad-header --break-blocks --keep-one-line-blocks --indent-switches --indent=spaces
 
 SOURCES=$(filter-out src/pyi2c.c, $(wildcard src/*.c))
 HEADERS=$(wildcard src/*.h)
