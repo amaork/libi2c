@@ -107,7 +107,7 @@ Linux userspace i2c library.
 	memset(buffer, 0, sizeof(buffer));
 
 	/* From i2c 0x0 address read 256 bytes data to buffer */
-	if (i2c_read(&device, 0x0, buffer, size)) != size) {
+	if ((i2c_read(&device, 0x0, buffer, size)) != size) {
 
 		/* Error process */
 	}
