@@ -1,10 +1,10 @@
 # source for core library
-libi2c_src = [
+i2c_src = [
   'i2c.c',
 ]
 
 # shared and/or static library
-libi2c = library(meson.project_name(), libi2c_src,
+libi2c = library(meson.project_name(), i2c_src,
   c_args: [
     cflags,
     '-D_DEFAULT_SOURCE',
@@ -13,7 +13,7 @@ libi2c = library(meson.project_name(), libi2c_src,
 )
 
 # dependency for use in subprojects (only)
-libi2c_dep = declare_dependency(
+i2c_dep = declare_dependency(
   compile_args: cflags,
   include_directories: include_directories('.'),
   link_with: libi2c,
