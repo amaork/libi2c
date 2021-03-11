@@ -14,11 +14,8 @@ project('i2c', ['c'],
 # the c++ compiler object
 cc = meson.get_compiler('c')
 
-# global cflags
-cflags = [
-  '-DLIBI2C_VERSION="' + meson.project_version() + '"',
-  '-D_DEFAULT_SOURCE',  # to fix missing usleep
-]
+# global cflags (public, included in subprojects and pkg-config)
+cflags = ['-DLIBI2C_VERSION="' + meson.project_version() + '"']
 
 # per compiler cflags, if desired
 if cc.get_id() == 'clang'
