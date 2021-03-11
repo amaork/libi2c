@@ -5,8 +5,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
-#include "i2c.h"
-
+#include "i2c/i2c.h"
 
 /* I2C default delay */
 #define I2C_DEFAULT_DELAY 1

@@ -2,13 +2,14 @@ PYTHON		= python
 CC		= $(CROSS)gcc
 AR		= $(CROSS)ar
 VERSION=$(shell head -n 1 VERSION)
-CFLAGS		= -Wall -Wextra -g -fPIC -DLIBI2C_VERSION="$(VERSION)"
+INCDIR = include
+CFLAGS		= -Wall -I$(INCDIR) -Wextra -g -fPIC -DLIBI2C_VERSION="$(VERSION)"
 LDSHFLAGS	= -rdynamic -shared 
 ARFLAGS		= rcv
 CODE_STYLE	= astyle --align-pointer=name --align-reference=name --suffix=none --break-blocks --pad-oper --pad-header --break-blocks --keep-one-line-blocks --indent-switches --indent=spaces
 
 SOURCES=$(filter-out src/pyi2c.c, $(wildcard src/*.c))
-HEADERS=$(wildcard src/*.h)
+HEADERS=$(wildcard $(INCDIR)/i2c/*.h)
 OBJECTS=$(SOURCES:.c=.o)
 TARGETS = libi2c.a libi2c.so pylibi2c.so
 

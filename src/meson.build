@@ -9,13 +9,14 @@ libi2c = library(meson.project_name(), i2c_src,
     cflags,
     '-D_DEFAULT_SOURCE',
   ],
+  include_directories: i2c_incdir,
   install: true,
 )
 
 # dependency for use in subprojects (only)
 i2c_dep = declare_dependency(
   compile_args: cflags,
-  include_directories: include_directories('.'),
+  include_directories: i2c_incdir,
   link_with: libi2c,
   version: meson.project_version(),
 )
@@ -24,13 +25,6 @@ i2c_dep = declare_dependency(
 pkg = import('pkgconfig')
 pkg.generate(libi2c,
   extra_cflags: cflags,
-  subdirs: meson.project_name(),
-)
-
-# public headers
-install_headers(['i2c.h'],
-  # i2c.h can clash with linux/i2c.h, so we put it in a subdir
-  subdir: meson.project_name(),
 )
 
 # python module build follows
@@ -50,6 +44,7 @@ foreach python_version : python_versions
     # https://mesonbuild.com/Python-module.html
     pylib = python.extension_module('pylibi2c', python_src,
       dependencies: python_dep,
+      include_directories: i2c_incdir,
       link_with: libi2c,
       install: true,
       c_args: cflags,

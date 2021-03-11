@@ -38,6 +38,7 @@ proj_url = 'https://github.com/amaork/libi2c'
 binary_package = 'libi2c'
 origin = 'github'
 
+subdir('include')
 subdir('src')
 subdir('example')
 subdir('tests')

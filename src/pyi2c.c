@@ -1,5 +1,5 @@
 #include <Python.h>
-#include "i2c.h"
+#include "i2c/i2c.h"
 
 #define _VERSION_ LIBI2C_VERSION
 #define _NAME_ "pylibi2c"

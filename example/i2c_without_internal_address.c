@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include "i2c.h"
+#include "i2c/i2c.h"
 
-int main(int argc, char **argv)
+int main()
 {
     int fd;
     I2CDevice device;
     const char *data = "9876543";
+    ssize_t ret;
 
     /* First open i2c bus */
     if ((fd = i2c_open("/dev/i2c-0")) == -1) {
@@ -26,8 +27,9 @@ int main(int argc, char **argv)
     device.iaddr_bytes = 0; /* Set this to zero, and using i2c_ioctl_xxxx API will ignore chip internal address */
 
     /* Write data to i2c */
-    if (i2c_ioctl_write(&device, 0x0, data, strlen(data)) != strlen(data)) {
-
+    ret = i2c_ioctl_write(&device, 0x0, data, strlen(data));
+    if (ret == -1 || (size_t)ret != strlen(data))
+    {
         /* Error process */
     }
 
