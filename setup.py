@@ -4,13 +4,22 @@
 setup.py file for pylibi2c
 """
 
+import os
 from distutils.core import setup, Extension
 
-pylibi2c_module = Extension('pylibi2c', sources=['src/i2c.c', 'src/pyi2c.c'],)
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+INC_DIR = os.path.join(THIS_DIR, 'include')
+VERSION = open('VERSION').read().strip()
+
+pylibi2c_module = Extension('pylibi2c',
+  sources=['src/i2c.c', 'src/pyi2c.c'],
+  extra_compile_args=['-DLIBI2C_VERSION="' + VERSION + '"'],
+  include_dirs=[INC_DIR],
+)
 
 setup(
     name='pylibi2c',
-    version='0.2',
+    version=VERSION,
     license='MIT',
     author='Amaork',
     author_email="amaork@gmail.com",

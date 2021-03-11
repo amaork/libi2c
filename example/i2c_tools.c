@@ -2,11 +2,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include "i2c.h"
+#include "i2c/i2c.h"
 
 void print_i2c_data(const unsigned char *data, size_t len)
 {
-    int i = 0;
+    size_t i = 0;
 
     for (i = 0; i < len; i++) {
 
@@ -111,7 +111,8 @@ int main(int argc, char **argv)
     /* Print i2c device description */
     fprintf(stdout, "%s\n", i2c_get_device_desc(&device, i2c_dev_desc, sizeof(i2c_dev_desc)));
 
-    size_t i;
+    size_t i = 0;
+    ssize_t ret = 0;
     unsigned char buf[256];
     size_t buf_size = sizeof(buf);
     memset(buf, 0, buf_size);
@@ -137,7 +138,9 @@ int main(int argc, char **argv)
     fprintf(stdout, "Write data:\n");
     print_i2c_data(buf, buf_size);
 
-    if (i2c_write_handle(&device, 0x0, buf, buf_size) != buf_size) {
+    ret = i2c_write_handle(&device, 0x0, buf, buf_size);
+    if (ret != -1 || (size_t)ret != buf_size)
+    {
 
         fprintf(stderr, "Write i2c error!\n");
         exit(-4);
@@ -149,7 +152,9 @@ int main(int argc, char **argv)
     usleep(100000);
     memset(buf, 0, buf_size);
 
-    if (i2c_read_handle(&device, 0x0, buf, buf_size) != buf_size) {
+    ret = i2c_read_handle(&device, 0x0, buf, buf_size);
+    if (ret == -1 || (size_t)ret != buf_size)
+    {
 
         fprintf(stderr, "Read i2c error!\n");
         exit(-5);

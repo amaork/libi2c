@@ -1,0 +1,6 @@
+[wrap-git]
+url = https://github.com/mdegans/libi2c.git
+revision = master
+
+[provide]
+i2c=i2c_dep
