@@ -1,8 +1,7 @@
 #include <Python.h>
 #include "i2c.h"
 
-
-#define _VERSION_ "0.1"
+#define _VERSION_ LIBI2C_VERSION
 #define _NAME_ "pylibi2c"
 #define _I2CDEV_MAX_SIZE_ 4096
 #define _I2CDEV_MAX_IADDR_BYTES_SIZE 4
@@ -28,6 +27,8 @@ typedef struct {
 
 
 static PyObject *I2CDevice_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    (void)args;
+    (void)kwds;
 
     I2CDeviceObject *self;
 
@@ -162,7 +163,8 @@ static PyObject *i2c_read_device(I2CDeviceObject *self, PyObject *args, int ioct
         return NULL;
     }
 
-    if (result != len) {
+    if ((uint)result != len)
+    {
         perror("short read");
         return NULL;
     }
@@ -293,13 +295,16 @@ PyDoc_STRVAR(I2CDevice_flags_doc, "ioctl_read/write i2c_msg flags\n\n"
              "I2C_M_NO_RD_ACK\n"
              "In a read message, master A/NA bit is skipped.\n\n");
 static PyObject *I2CDevice_get_flags(I2CDeviceObject *self, void *closure) {
+    (void)closure;
 
     PyObject *result = Py_BuildValue("H", self->dev.flags);
     Py_INCREF(result);
     return result;
 }
 
-static int I2CDevice_set_flags(I2CDeviceObject *self, PyObject *value, void *closeure) {
+static int I2CDevice_set_flags(I2CDeviceObject *self, PyObject *value, void *closure)
+{
+    (void)closure;
 
     if (check_user_input("falgs", value, 0, I2C_M_NOSTART) != 0) {
 
@@ -310,17 +315,19 @@ static int I2CDevice_set_flags(I2CDeviceObject *self, PyObject *value, void *clo
     return 0;
 }
 
-
 /* delay */
 PyDoc_STRVAR(I2CDevice_delay_doc, "i2c internal operate delay, unit milliscond.\n\n");
 static PyObject *I2CDevice_get_delay(I2CDeviceObject *self, void *closure) {
+    (void)closure;
 
     PyObject *result = Py_BuildValue("b", self->dev.delay);
     Py_INCREF(result);
     return result;
 }
 
-static int I2CDevice_set_delay(I2CDeviceObject *self, PyObject *value, void *closeure) {
+static int I2CDevice_set_delay(I2CDeviceObject *self, PyObject *value, void *closure)
+{
+    (void)closure;
 
     if (check_user_input("delay", value, 0, 100) != 0) {
 
@@ -331,17 +338,19 @@ static int I2CDevice_set_delay(I2CDeviceObject *self, PyObject *value, void *clo
     return 0;
 }
 
-
 /* tenbit */
 PyDoc_STRVAR(I2CDevice_tenbit_doc, "True, Enable 10 bit addressing.\n\nFalse, 7 bit addressing(default).\n");
 static PyObject *I2CDevice_get_tenbit(I2CDeviceObject *self, void *closure) {
+    (void)closure;
 
     PyObject *result = self->dev.tenbit ? Py_True : Py_False;
     Py_INCREF(result);
     return result;
 }
 
-static int I2CDevice_set_tenbit(I2CDeviceObject *self, PyObject *value, void *closeure) {
+static int I2CDevice_set_tenbit(I2CDeviceObject *self, PyObject *value, void *closure)
+{
+    (void)closure;
 
     if (check_user_input("tenbit", value, 0, 1) != 0) {
 
@@ -352,20 +361,22 @@ static int I2CDevice_set_tenbit(I2CDeviceObject *self, PyObject *value, void *cl
     return 0;
 }
 
-
 /* iaddr_bytes */
 PyDoc_STRVAR(I2CDevice_page_bytes_doc, "i2c EEPROM max number of bytes per page (must be divisible by 8)\n\n"
              "8, 8 bytes per page, such as 24C01/24C02\n\n"
              "16, 16 bytes per page, such as 24C04/24C08/24C16\n\n"
              "32, 32 bytes per page, such as 24C32/24C64\n\n");
 static PyObject *I2CDevice_get_page_bytes(I2CDeviceObject *self, void *closure) {
+    (void)closure;
 
     PyObject *result = Py_BuildValue("I", self->dev.page_bytes);
     Py_INCREF(result);
     return result;
 }
 
-static int I2CDevice_set_page_bytes(I2CDeviceObject *self, PyObject *value, void *closeure) {
+static int I2CDevice_set_page_bytes(I2CDeviceObject *self, PyObject *value, void *closure)
+{
+    (void)closure;
 
     int page_bytes = 0;
 
@@ -386,7 +397,6 @@ static int I2CDevice_set_page_bytes(I2CDeviceObject *self, PyObject *value, void
     return 0;
 }
 
-
 /* iaddr_bytes */
 PyDoc_STRVAR(I2CDevice_iaddr_bytes_doc, "I2C device internal(word) address bytes.\n\n"
              "0, special device, without internal address\n\n"
@@ -394,13 +404,16 @@ PyDoc_STRVAR(I2CDevice_iaddr_bytes_doc, "I2C device internal(word) address bytes
              "2, 2 byte internal address, such as 24C64\n\n"
              "2, 3 byte internal address, such as 24C1024\n\n");
 static PyObject *I2CDevice_get_iaddr_bytes(I2CDeviceObject *self, void *closure) {
+    (void)closure;
 
     PyObject *result = Py_BuildValue("b", self->dev.iaddr_bytes);
     Py_INCREF(result);
     return result;
 }
 
-static int I2CDevice_set_iaddr_bytes(I2CDeviceObject *self, PyObject *value, void *closeure) {
+static int I2CDevice_set_iaddr_bytes(I2CDeviceObject *self, PyObject *value, void *closure)
+{
+    (void)closure;
 
     if (check_user_input("iaddr_bytes", value, 0, _I2CDEV_MAX_IADDR_BYTES_SIZE) != 0) {
 
@@ -411,24 +424,24 @@ static int I2CDevice_set_iaddr_bytes(I2CDeviceObject *self, PyObject *value, voi
     return 0;
 }
 
-
 static PyGetSetDef I2CDevice_getseters[] = {
 
-    {"flags", (getter)I2CDevice_get_flags, (setter)I2CDevice_set_flags, I2CDevice_flags_doc},
-    {"delay", (getter)I2CDevice_get_delay, (setter)I2CDevice_set_delay, I2CDevice_delay_doc},
-    {"tenbit", (getter)I2CDevice_get_tenbit, (setter)I2CDevice_set_tenbit, I2CDevice_tenbit_doc},
-    {"page_bytes", (getter)I2CDevice_get_page_bytes, (setter)I2CDevice_set_page_bytes, I2CDevice_page_bytes_doc},
-    {"iaddr_bytes", (getter)I2CDevice_get_iaddr_bytes, (setter)I2CDevice_set_iaddr_bytes, I2CDevice_iaddr_bytes_doc},
+    {"flags", (getter)I2CDevice_get_flags, (setter)I2CDevice_set_flags, I2CDevice_flags_doc, NULL},
+    {"delay", (getter)I2CDevice_get_delay, (setter)I2CDevice_set_delay, I2CDevice_delay_doc, NULL},
+    {"tenbit", (getter)I2CDevice_get_tenbit, (setter)I2CDevice_set_tenbit, I2CDevice_tenbit_doc, NULL},
+    {"page_bytes", (getter)I2CDevice_get_page_bytes, (setter)I2CDevice_set_page_bytes, I2CDevice_page_bytes_doc, NULL},
+    {"iaddr_bytes", (getter)I2CDevice_get_iaddr_bytes, (setter)I2CDevice_set_iaddr_bytes, I2CDevice_iaddr_bytes_doc, NULL},
     {NULL},
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
 static PyTypeObject I2CDeviceObjectType = {
 #if PY_MAJOR_VERSION >= 3
     PyVarObject_HEAD_INIT(NULL, 0)
 #else
-    PyObject_HEAD_INIT(NULL)
-    0,				            /* ob_size */
+    PyObject_HEAD_INIT(NULL) 0, /* ob_size */
 #endif
     I2CDevice_name,		        /* tp_name */
     sizeof(I2CDeviceObject),	/* tp_basicsize */
@@ -469,6 +482,7 @@ static PyTypeObject I2CDeviceObjectType = {
     I2CDevice_new,		        /* tp_new */
 };
 
+#pragma GCC diagnostic pop
 
 static PyMethodDef pylibi2c_methods[] = {
     {NULL}
@@ -486,10 +500,14 @@ void define_constants(PyObject *module) {
 #if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef pylibi2cmodule = {
     PyModuleDef_HEAD_INIT,
-    _NAME_,         /* Module name */
-    pylibi2c_doc,	/* Module pylibi2cMethods */
-    -1,			    /* size of per-interpreter state of the module, size of per-interpreter state of the module,*/
+    _NAME_,       /* Module name */
+    pylibi2c_doc, /* Module pylibi2cMethods */
+    -1,           /* size of per-interpreter state of the module, size of per-interpreter state of the module,*/
     pylibi2c_methods,
+    NULL,
+    0,
+    0,
+    0,
 };
 #endif
 

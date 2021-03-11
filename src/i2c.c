@@ -261,6 +261,7 @@ ssize_t i2c_read(const I2CDevice *device, unsigned int iaddr, void *buf, size_t 
 ssize_t i2c_write(const I2CDevice *device, unsigned int iaddr, const void *buf, size_t len)
 {
     ssize_t remain = len;
+    ssize_t ret;
     size_t cnt = 0, size = 0;
     const unsigned char *buffer = buf;
     unsigned char delay = GET_I2C_DELAY(device->delay);
@@ -284,9 +285,11 @@ ssize_t i2c_write(const I2CDevice *device, unsigned int iaddr, const void *buf, 
         /* Copy data to tmp_buf */
         memcpy(tmp_buf + device->iaddr_bytes, buffer, size);
 
-        /* Write to buf content to i2c device length is address length and write buffer length */
-        if (write(device->bus, tmp_buf, device->iaddr_bytes + size) != device->iaddr_bytes + size) {
-
+        /* Write to buf content to i2c device length  is address length and
+                write buffer length */
+        ret = write(device->bus, tmp_buf, device->iaddr_bytes + size);
+        if (ret == -1 || (size_t)ret != device->iaddr_bytes + size)
+        {
             perror("I2C write error:");
             return -1;
         }

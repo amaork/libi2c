@@ -6,11 +6,16 @@ setup.py file for pylibi2c
 
 from distutils.core import setup, Extension
 
-pylibi2c_module = Extension('pylibi2c', sources=['src/i2c.c', 'src/pyi2c.c'],)
+VERSION = open('VERSION').read().strip()
+
+pylibi2c_module = Extension('pylibi2c',
+  sources=['src/i2c.c', 'src/pyi2c.c'],
+  extra_compile_args=['-DLIBI2C_VERSION="' + VERSION + '"'],
+)
 
 setup(
     name='pylibi2c',
-    version='0.2',
+    version=VERSION,
     license='MIT',
     author='Amaork',
     author_email="amaork@gmail.com",
