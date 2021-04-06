@@ -3,7 +3,7 @@ AR			= $(CROSS)ar
 CFLAGS		= -Wall -g
 LDSHFLAGS	= -rdynamic -shared 
 ARFLAGS		= rcv
-CFLAGS		+= -I../src
+CFLAGS		+= -I../include
 LDFLAGS		= -L.. -li2c -Wl,-R -Wl,..
 
 OBJDIR=../objs
