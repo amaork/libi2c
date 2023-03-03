@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pylibi2c"
+authors = [
+  { name="amaork", email="amaork@gmail.com" },
+]
+
+description = "Linux userspace i2c operation library"
+keywords = ["i2c", "raspberry-pi"]
+
+readme = "README.md"
+requires-python = ">=2.7"
+license = { file = "LICENSE" }
+
+dynamic = ["version"]
+
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: C",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 3",
+]
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+[project.urls]
+"Homepage" = "https://github.com/amaork/libi2c"
+"Bug Tracker" = "https://github.com/amaork/libi2c/issues"

@@ -25,6 +25,10 @@ Linux userspace i2c library.
 
 ## Installation
 
+	pip install pylibi2c
+
+	or
+
 	sudo python setup.py install
 
 	or
@@ -152,4 +156,4 @@ Linux userspace i2c library.
 
 1. If i2c device do not have internal address, please use `i2c_ioctl_read/write` function for read/write, set`'iaddr_bytes=0`.
 
-2. If want ignore i2c device nak signal, please use `i2c_ioctl_read/write` function, set I2CDevice.falgs as  `I2C_M_IGNORE_NCK`.
+2. If want ignore i2c device nak signal, please use `i2c_ioctl_read/write` function, set I2CDevice.falgs as `I2C_M_IGNORE_NAK`.
