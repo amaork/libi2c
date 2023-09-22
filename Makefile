@@ -40,6 +40,8 @@ example:$(TARGETS)
 
 libi2c.a:$(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $^
+	mkdir -p build
+	cp libi2c.a build
 
 libi2c.so:$(OBJECTS)
 	$(CC) $(LDSHFLAGS) -o $@ $^
