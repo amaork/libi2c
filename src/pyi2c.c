@@ -1,3 +1,4 @@
+#define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
 #include "i2c/i2c.h"
 
