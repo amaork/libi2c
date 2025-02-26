@@ -37,6 +37,9 @@ int i2c_open(const char *bus_name)
         return -1;
     }
 
+    // make reading non blocking
+    fcntl(fd, F_SETFL, O_NONBLOCK);
+
     return fd;
 }
 
@@ -51,7 +54,7 @@ void i2c_close(int bus)
 **	@brief		:	Initialize I2CDevice with defualt value
 **	#device	    :	I2CDevice struct
 */
-void i2c_init_device(I2CDevice *device)
+int i2c_init_device(I2CDevice *device)
 {
     /* 7 bit device address */
     device->tenbit = 0;
@@ -64,6 +67,12 @@ void i2c_init_device(I2CDevice *device)
 
     /* 1 byte internal(word) address */
     device->iaddr_bytes = 1;
+
+    /* Set i2c slave address once */
+    if (i2c_select(device->bus, device->addr, device->tenbit) == -1) {
+        return -1;
+    }
+    return 0;
 }
 
 
@@ -218,12 +227,6 @@ ssize_t i2c_read(const I2CDevice *device, unsigned int iaddr, void *buf, size_t 
     unsigned char addr[INT_ADDR_MAX_BYTES];
     unsigned char delay = GET_I2C_DELAY(device->delay);
 
-    /* Set i2c slave address */
-    if (i2c_select(device->bus, device->addr, device->tenbit) == -1) {
-
-        return -1;
-    }
-
     /* Convert i2c internal address */
     memset(addr, 0, sizeof(addr));
     i2c_iaddr_convert(iaddr, device->iaddr_bytes, addr);
@@ -265,12 +268,6 @@ ssize_t i2c_write(const I2CDevice *device, unsigned int iaddr, const void *buf, 
     const unsigned char *buffer = buf;
     unsigned char delay = GET_I2C_DELAY(device->delay);
     unsigned char tmp_buf[PAGE_MAX_BYTES + INT_ADDR_MAX_BYTES];
-
-    /* Set i2c slave address */
-    if (i2c_select(device->bus, device->addr, device->tenbit) == -1) {
-
-        return -1;
-    }
 
     /* Once only can write less than 4 byte */
     while (remain > 0) {
@@ -350,8 +347,8 @@ int i2c_select(int bus, unsigned long dev_addr, unsigned long tenbit)
         return -1;
     }
 
-    /* Set i2c device as slave ans set it address */
-    if (ioctl(bus, I2C_SLAVE, dev_addr)) {
+    /* Set i2c device as slave and set it address */
+    if (ioctl(bus, I2C_SLAVE_FORCE, dev_addr)) {
 
         perror("Set i2c device address failed");
         return -1;

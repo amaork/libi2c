@@ -27,7 +27,7 @@ void i2c_close(int bus);
 int i2c_open(const char *bus_name);
 
 /* Initialize I2CDevice with default value */
-void i2c_init_device(I2CDevice *device);
+int i2c_init_device(I2CDevice *device);
 
 /* Get i2c device description */
 char *i2c_get_device_desc(const I2CDevice *device, char *buf, size_t size);
