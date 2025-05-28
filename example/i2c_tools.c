@@ -139,7 +139,7 @@ int main(int argc, char **argv)
     print_i2c_data(buf, buf_size);
 
     ret = i2c_write_handle(&device, 0x0, buf, buf_size);
-    if (ret != -1 || (size_t)ret != buf_size)
+    if (ret == -1 || (size_t)ret != buf_size)
     {
 
         fprintf(stderr, "Write i2c error!\n");
